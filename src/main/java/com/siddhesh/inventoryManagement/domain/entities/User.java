@@ -52,7 +52,7 @@ public class User {
     }
 
 
-    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Order> posts = new ArrayList<>();
 
 }
