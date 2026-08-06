@@ -25,8 +25,11 @@ public class StockTransaction {
     @JoinColumn(name = "product_id",nullable = false)
     private Product product;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "order_id")
+//    private Order order;
+//    @JoinColumn(name = "order_id")
+    @Column
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,8 +50,12 @@ public class StockTransaction {
     private LocalDateTime createdAt;
 
     // Can point to an Admin/User ID who performed the transaction
-    @Column(name = "created_by", nullable = false)
-    private UUID createdBy;
+//    @Column(name = "created_by", nullable = false)
+//    private UUID createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
     @Column(length = 255)
     private String reference; // e.g., "Supplier Invoice #123" or "Manual Audit"

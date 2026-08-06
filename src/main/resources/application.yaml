@@ -22,5 +22,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
-  secret: "your-super-secret-key-that-is-at-least-256-bits-long-for-security"
+  secret: 7QnL9vX2aT8mYpR4kJ6sW1eH5uB3zNcF8dGhK2LmP9rTxVq
+  expiration: 86400000
 

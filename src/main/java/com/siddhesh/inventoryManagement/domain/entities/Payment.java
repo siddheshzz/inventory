@@ -28,7 +28,7 @@ public class Payment {
     private BigDecimal amount;
 
     @Column(name = "payment_method", nullable = false)
-    private String paymentMethod; // e.g., "STRIPE", "PAYPAL", "COD"
+    private PaymentMethod paymentMethod; // e.g., "STRIPE", "PAYPAL", "COD"
 
     @Column(name = "transaction_reference")
     private String transactionReference; // Gateway ID (e.g., Stripe charge ID "ch_3Mxs...")

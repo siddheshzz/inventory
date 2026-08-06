@@ -49,7 +49,12 @@ public class Order {
     private BigDecimal shipping_charges;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal grand_total;
+
     @Column
+    private BigDecimal subtotal;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,7 +65,7 @@ public class Order {
     @Builder.Default
     private List<OrderItem> orderItems= new ArrayList<>();
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+//    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     @Builder.Default
     private List<StockTransaction> stockTransactions = new ArrayList<>();
 

@@ -1,10 +1,16 @@
 package com.siddhesh.inventoryManagement.services;
 
+import com.siddhesh.inventoryManagement.domain.dtos.AuthResponse;
+import com.siddhesh.inventoryManagement.domain.dtos.OtpVerificationDto;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public interface AuthService {
 
-    UserDetails authenticate(int phone_number, int otp);
-    String generateToken(UserDetails userDetails);
-    UserDetails validateToken(String token);
+    void sendOtp(String phoneNumber);
+    AuthResponse verifyOtp(OtpVerificationDto request) throws ChangeSetPersister.NotFoundException;
+
+//    UserDetails authenticate(int phone_number, int otp);
+//    String generateToken(UserDetails details);
+//    UserDetails validateToken(String token);
 }

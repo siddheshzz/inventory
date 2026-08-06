@@ -38,6 +38,14 @@ public class Product {
     @JoinColumn(name = "category_id",nullable = false)
     private ProductCategory category;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer quantity = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

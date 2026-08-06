@@ -39,7 +39,7 @@ public class Address {
     private String state;
 
     @Column(nullable = false, length = 20) // String because postal codes can have letters/dash (e.g., K1A 0B1 or 90210-1234)
-    private String pincode;
+    private String postalCode;
 
     @Column(nullable = false, length = 100)
     private String country;
