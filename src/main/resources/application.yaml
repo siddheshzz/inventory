@@ -3,12 +3,12 @@ spring:
     name: inventoryManagement
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
+    url: jdbc:postgresql://localhost:5432/inventory
     username: postgres
     password: a
   data:
     redis:
-      host: localhost
+      host: redis-cache
       port: 6379
       timeout: 60000
   #    driver-class-name: org.postgresql.Driver

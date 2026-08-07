@@ -66,8 +66,9 @@ public class Order {
     private List<OrderItem> orderItems= new ArrayList<>();
 
 //    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<StockTransaction> stockTransactions = new ArrayList<>();
+//    @OneToMany(mappedBy = "order")
+//    @Builder.Default
+//    private List<StockTransaction> stockTransactions = new ArrayList<>();
 
     @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
     @Builder.Default

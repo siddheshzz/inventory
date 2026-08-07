@@ -30,6 +30,8 @@ public class AuthController {
 
         authService.sendOtp(otpRequest.getPhoneNumber());
 
+        System.out.println("OUT OF THE AUTH SERVICE");
+
 //        AuthResponse authResponse = AuthResponse.builder().build();
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);

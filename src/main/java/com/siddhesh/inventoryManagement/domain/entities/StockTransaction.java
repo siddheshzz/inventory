@@ -29,7 +29,9 @@ public class StockTransaction {
 //    @JoinColumn(name = "order_id")
 //    private Order order;
 //    @JoinColumn(name = "order_id")
-    @Column
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "order_id", nullable = true)
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
