@@ -27,32 +27,15 @@ public class AuthController {
     public ResponseEntity<Void> sendotp(@RequestBody OtpRequestDto otpRequest){
 
         System.out.println("SEND-OTP");
-
         authService.sendOtp(otpRequest.getPhoneNumber());
-
         System.out.println("OUT OF THE AUTH SERVICE");
-
-//        AuthResponse authResponse = AuthResponse.builder().build();
-
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<AuthResponse> verifyotp(@RequestBody OtpVerificationDto otpVerificationDto) throws ChangeSetPersister.NotFoundException {
-
         System.out.println("VERIFY-OTP");
-//
-//        if (authService.verifyOtp(otpVerificationDto)) {
-//
-//            AuthResponse authResponse = AuthResponse.builder()
-//                    .token(authService.generateToken(otpVerificationDto))
-//                    .expiresIn(86400)
-//                    .build();
-//
-//            return ResponseEntity.ok(authResponse);
-//        }
-//        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
         return ResponseEntity.ok(authService.verifyOtp(otpVerificationDto));
 

@@ -25,18 +25,13 @@ public class JwtServiceImpl implements JwtService {
     private long expiration;
 
     private SecretKey getSigningKey() {
-
         return Keys.hmacShaKeyFor(
                 secret.getBytes(StandardCharsets.UTF_8)
         );
-
     }
 
     @Override
     public String generateToken(User user) {
-//        String subject =
-//                user.getUsername();
-
         return Jwts.builder()
                 .subject(user.getPhoneNumber())
                 .claim("role", user.getRole().name())
@@ -44,37 +39,31 @@ public class JwtServiceImpl implements JwtService {
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
-
-
-
-
     }
 
-    private Claims extractAllClaims(String token){
+
+    private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-
     }
+
 
     @Override
     public String extractSubject(String token) {
-
         return extractAllClaims(token).getSubject();
     }
-
 
 
     private boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
+
     @Override
     public boolean isTokenValid(String token) {
-
         try {
             return !isTokenExpired(token);
         } catch (JwtException | IllegalArgumentException e) {

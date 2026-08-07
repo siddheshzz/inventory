@@ -39,46 +39,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse verifyOtp(OtpVerificationDto request)  {
-        //find he number in redis and corresponding otp
-        //if request.otp == otp
-
-//        User user =
-//                userRepository
-//                        .findByPhoneNumber(request.getPhoneNumber())
-//                        .orElseThrow(ChangeSetPersister.NotFoundException::new);
-//
-//        User user1 =
-//                userRepository
-//                        .findByPhoneNumber(request.getPhoneNumber())
-//                        .orElseGet(() -> {
-//
-//                            User newUser = User.builder()
-//                                    .phoneNumber(request.getPhoneNumber())
-//                                    .name("New User")
-//                                    .role(Role.USER)
-//                                    .build();
-//
-//                            return userRepository.save(newUser);
-//
-//                        });
 
         boolean validOtp =
                 otpService.verifyOtp(
                         request.getPhoneNumber(),
                         request.getOtpCode()
                 );
-
-
         if(!validOtp){
-
             throw new RuntimeException("Invalid OTP");
-
         }
-//        User user =
-//                userRepository
-//                        .findByPhoneNumber(request.getPhoneNumber())
-//                        .orElseThrow();
-
         User user =
                 userRepository
                         .findByPhoneNumber(
@@ -97,18 +66,8 @@ public class AuthServiceImpl implements AuthService {
 
                         });
 
-
-
-
-//        UserDetails details =
-//                new CustomUserDetails(user);
-
         String token =
                 jwtService.generateToken(user);
-//        return new AuthResponse(
-//            generateToken(details),
-//            84000
-//        );
         return AuthResponse.builder()
                 .token(token)
                 .expiresIn(86400)

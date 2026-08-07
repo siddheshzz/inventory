@@ -10,7 +10,4 @@ public interface AuthService {
     void sendOtp(String phoneNumber);
     AuthResponse verifyOtp(OtpVerificationDto request) throws ChangeSetPersister.NotFoundException;
 
-//    UserDetails authenticate(int phone_number, int otp);
-//    String generateToken(UserDetails details);
-//    UserDetails validateToken(String token);
 }
