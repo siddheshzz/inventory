@@ -23,6 +23,7 @@ public class AuthController {
 
     private final AuthService authService;
 
+
     @PostMapping("/send-otp")
     public ResponseEntity<Void> sendotp(@RequestBody OtpRequestDto otpRequest){
 
