@@ -21,7 +21,7 @@ public class UserServiceImpl implements UserService {
 
         try{
             User user = userRepository.findByPhoneNumber(phoneNumber)
-                    .orElseThrow(() -> new RuntimeException("User not found"));;
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
             return new UserResponse(
                     user.getId(),
@@ -35,6 +35,22 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+    }
+
+    @Override
+    public UserResponse getProfileById(UUID id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(()-> new RuntimeException("User not found"));
+
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getName(),
+                user.getRole().toString()
+        );
 
     }
 }
