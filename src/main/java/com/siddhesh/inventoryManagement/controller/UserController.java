@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,11 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     private final UserService userService;
 
-    @GetMapping(name = "/me")
+    @GetMapping(value = "/me")
     public ResponseEntity<UserResponse> getProfile(
-            @AuthenticationPrincipal Jwts jwt
+            Authentication authentication
     ){
-        return ResponseEntity.ok(userService.getProfile(jwt..toString()));
+
+        String phoneNumber = authentication.getName();
+
+        return ResponseEntity.ok(userService.getProfile(phoneNumber));
 
     }
 }
