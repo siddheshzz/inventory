@@ -19,6 +19,8 @@ services:
     restart: always
     ports:
       - 8889:8080
+    networks:
+      - inventory-network
   redis-cache:
     image: redis:7-alpine
     container_name: inventory-redis

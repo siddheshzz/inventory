@@ -1,10 +1,9 @@
 package com.siddhesh.inventoryManagement.domain.dtos;
 
+
 import com.siddhesh.inventoryManagement.domain.entities.Role;
-import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -13,13 +12,10 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class UserResponse {
+public class AdminUserUpdateRequest {
 
-    private UUID id;
     private String email;
     private String phoneNumber;
     private String name;
-    private String role;
-
-
+    private Role role;
 }

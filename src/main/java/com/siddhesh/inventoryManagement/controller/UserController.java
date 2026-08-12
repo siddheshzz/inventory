@@ -1,7 +1,9 @@
 package com.siddhesh.inventoryManagement.controller;
 
 
+import com.siddhesh.inventoryManagement.domain.dtos.AdminUserUpdateRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.UserResponse;
+import com.siddhesh.inventoryManagement.domain.dtos.UserUpdateRequest;
 import com.siddhesh.inventoryManagement.services.UserService;
 
 import io.jsonwebtoken.Jwt;
@@ -11,10 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -42,6 +41,20 @@ public class UserController {
         return ResponseEntity.ok(userService.getProfile(phoneNumber));
 
     }
+    @PatchMapping(value="/me")
+    public ResponseEntity<UserResponse> updateProfileByIdUserRoute(
+            Authentication authentication,
+            @RequestBody UserUpdateRequest payload
+    ){
+        System.out.println("INSIDE THE CONTROLLER");
+
+        String phoneNumber = authentication.getName();
+        return ResponseEntity.ok(
+                userService.updateProfileByIdUser(phoneNumber, payload
+                )
+        );
+    }
+//    @PreAuthorize("hasAuthority('ADMIN')")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value="/{id}")
     public ResponseEntity<UserResponse> getProfileByIdAdminRoute(
@@ -50,6 +63,32 @@ public class UserController {
         return ResponseEntity.ok(
                 userService.getProfileById(id)
         );
-
     }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping(value="/{id}")
+    public ResponseEntity<UserResponse> updateProfileByIdAdminRoute(
+            @PathVariable UUID id,
+            @RequestBody AdminUserUpdateRequest payload,
+            Authentication authentication
+    ){
+
+        System.out.println("USER: " + authentication.getName());
+        System.out.println("AUTHORITIES: " + authentication.getAuthorities());
+        return ResponseEntity.ok(
+                userService.updateProfileById(id, payload
+                )
+        );
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping(value="/{id}")
+    public ResponseEntity<Void> deleteProfileByIdAdminRoute(
+            @PathVariable UUID id
+    ){
+        userService.deleteProfileById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }
