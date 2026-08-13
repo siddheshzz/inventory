@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -62,6 +63,16 @@ public class UserController {
     ){
         return ResponseEntity.ok(
                 userService.getProfileById(id)
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value="/{id}")
+    public ResponseEntity<List<UserResponse>> getProfilesAdminRoute(
+            @PathVariable UUID id
+    ){
+        return ResponseEntity.ok(
+                userService.getProfiles()
         );
     }
 

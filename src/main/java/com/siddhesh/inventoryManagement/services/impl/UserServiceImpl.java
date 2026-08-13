@@ -9,6 +9,7 @@ import com.siddhesh.inventoryManagement.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -120,6 +121,31 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteProfileById(UUID id) {
         userRepository.deleteById(id);
+
+    }
+
+
+    @Override
+    public List<UserResponse> getProfiles(){
+
+        List<User> users = userRepository.findAll();
+
+        List<UserResponse> res = List.of();
+
+
+        for(User user : users){
+            res.add(new UserResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getPhoneNumber(),
+                    user.getName(),
+                    user.getRole().toString()
+            ));
+
+        }
+
+        return res;
+
 
     }
 }
