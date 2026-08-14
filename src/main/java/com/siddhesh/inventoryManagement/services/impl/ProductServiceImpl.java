@@ -107,6 +107,7 @@ public class ProductServiceImpl implements ProductService {
 
             product.setCategory(category);
         }
+        productRepository.save(product);
 
         return productMapper.toResponse(product);
     }

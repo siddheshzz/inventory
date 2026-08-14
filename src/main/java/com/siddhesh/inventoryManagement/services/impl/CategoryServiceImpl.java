@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
 
     private final ProductCategoryRepository productCategoryRepository;
@@ -46,15 +45,27 @@ public class CategoryServiceImpl implements CategoryService {
         return categories;
     }
 
+    @Transactional
     @Override
     public CategoryResponse createCategory(CreateCategoryRequest payload) {
         if(productCategoryRepository.existsByNameIgnoreCase(payload.getName())){
-            throw new CategoryAlreadyExistException("Alrady there re baba");
+            throw new CategoryAlreadyExistException("Already there re baba");
         }
-
+//        ProductCategory savedCategory = productCategoryRepository.save(cat);
         ProductCategory cat = categoryMapper.toEntity(payload);
 
         ProductCategory savedCategory = productCategoryRepository.save(cat);
+
+        System.out.println("========== CATEGORY DEBUG ==========");
+        System.out.println("ID: " + savedCategory.getId());
+        System.out.println("NAME: " + savedCategory.getName());
+
+        boolean exists = productCategoryRepository.existsById(savedCategory.getId());
+
+        System.out.println("EXISTS AFTER SAVE: " + exists);
+        System.out.println("====================================");
+
+
         return categoryMapper.toResponse(savedCategory);
     }
 

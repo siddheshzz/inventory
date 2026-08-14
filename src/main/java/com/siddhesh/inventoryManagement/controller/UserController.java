@@ -67,7 +67,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping(value="/{id}")
+    @GetMapping()
     public ResponseEntity<List<UserResponse>> getProfilesAdminRoute(
             @PathVariable UUID id
     ){
