@@ -51,7 +51,7 @@ public class UserController {
 
         String phoneNumber = authentication.getName();
         return ResponseEntity.ok(
-                userService.updateProfileByIdUser(phoneNumber, payload
+                userService.updateOwnProfile(phoneNumber, payload
                 )
         );
     }

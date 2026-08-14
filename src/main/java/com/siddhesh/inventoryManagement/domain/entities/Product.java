@@ -2,7 +2,7 @@ package com.siddhesh.inventoryManagement.domain.entities;
 
 
 import jakarta.persistence.*;
-import jdk.jfr.Category;
+
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -25,7 +25,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column
+    @Column(nullable = false, length = 150)
     private String name;
 
     @Column(columnDefinition = "TEXT")
@@ -34,9 +34,12 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @ManyToOne(optional = false,fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id",nullable = false)
-    private ProductCategory category;
+//    @ManyToOne(optional = false,fetch = FetchType.LAZY)
+//    @JoinColumn(name = "category_id",nullable = false)
+//    private UUID categoryId;
+@ManyToOne(fetch = FetchType.LAZY, optional = false)
+@JoinColumn(name = "category_id", nullable = false)
+private ProductCategory category;
 
     @Column(nullable = false)
     @Builder.Default

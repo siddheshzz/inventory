@@ -8,7 +8,9 @@ import com.siddhesh.inventoryManagement.repositories.UserRepository;
 import com.siddhesh.inventoryManagement.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,7 +57,7 @@ public class UserServiceImpl implements UserService {
                 user.getRole().toString()
         );
     }
-
+    @Transactional
     @Override
     public UserResponse updateProfileById(UUID id,AdminUserUpdateRequest payload) {
         System.out.println("INSIDE THE service");
@@ -82,9 +84,9 @@ public class UserServiceImpl implements UserService {
 
 
     }
-
+    @Transactional
     @Override
-    public UserResponse updateProfileByIdUser(String phoneNumber,UserUpdateRequest payload) {
+    public UserResponse updateOwnProfile(String phoneNumber,UserUpdateRequest payload) {
         User user = userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new RuntimeException("User nnot found"));
 
@@ -113,7 +115,7 @@ public class UserServiceImpl implements UserService {
                 user.getEmail(),
                 user.getPhoneNumber(),
                 user.getName(),
-                user.getRole().toString()
+                user.getRole().name()
         );
 
     }
@@ -130,7 +132,7 @@ public class UserServiceImpl implements UserService {
 
         List<User> users = userRepository.findAll();
 
-        List<UserResponse> res = List.of();
+        List<UserResponse> res = new ArrayList<>();;
 
 
         for(User user : users){
@@ -145,6 +147,9 @@ public class UserServiceImpl implements UserService {
         }
 
         return res;
+
+
+
 
 
     }

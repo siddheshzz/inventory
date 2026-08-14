@@ -14,7 +14,7 @@ public interface UserService {
     UserResponse getProfileById(UUID id);
     UserResponse updateProfileById(UUID id,AdminUserUpdateRequest payload);
 
-    UserResponse updateProfileByIdUser(String phone, UserUpdateRequest payload);
+    UserResponse updateOwnProfile(String phone, UserUpdateRequest payload);
 
     void deleteProfileById(UUID id);
 
