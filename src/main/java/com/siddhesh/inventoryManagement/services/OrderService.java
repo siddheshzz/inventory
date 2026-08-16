@@ -16,7 +16,7 @@ public interface OrderService {
 //
 //    POST   /api/v1/order
 
-    OrderResponse createOrder(CreateOrderRequest createOrderRequest)
+    OrderResponse createOrder(CreateOrderRequest createOrderRequest);
 
 
 
@@ -28,4 +28,4 @@ public interface OrderService {
 //    DELETE /api/v1/orders/{id}
 }
 
-}
+
