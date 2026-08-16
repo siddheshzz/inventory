@@ -1,8 +1,11 @@
 package com.siddhesh.inventoryManagement.domain.entities;
 
 public enum OrderStatus {
-    CANCELLED,
-    SUCCESSFUL,
-
+    PENDING,
+    CONFIRMED,
+    PROCESSING,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED
 
 }

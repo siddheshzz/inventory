@@ -1,5 +1,6 @@
 package com.siddhesh.inventoryManagement.domain.dtos.order;
 
+import com.siddhesh.inventoryManagement.domain.dtos.orderItem.OrderItemResponse;
 import com.siddhesh.inventoryManagement.domain.entities.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,29 +22,28 @@ import java.util.UUID;
 
 public class OrderResponse {
 
-
     private UUID id;
+
     private OrderStatus status;
-    private BigDecimal discount;
-    private BigDecimal tax;
-    private BigDecimal shipping_charges;
-    private BigDecimal grand_total;
 
     private BigDecimal subtotal;
 
+    private BigDecimal discount;
+
+    private BigDecimal tax;
+
+    private BigDecimal shippingCharges;
+
+    private BigDecimal grandTotal;
+
     private PaymentStatus paymentStatus;
 
-    private User user;
+    private UUID userId;
 
-    private List<OrderItem> orderItems= new ArrayList<>();
-
-
-    private List<Payment> payments = new ArrayList<>();
+    private List<OrderItemResponse> items;
 
     private LocalDateTime createdAt;
 
-
     private LocalDateTime updatedAt;
-
 
 }

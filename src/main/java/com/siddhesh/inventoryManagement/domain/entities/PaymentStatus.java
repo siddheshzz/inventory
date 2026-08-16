@@ -2,6 +2,8 @@ package com.siddhesh.inventoryManagement.domain.entities;
 
 public enum PaymentStatus {
 
+    PENDING,
     CONFIRMED,
-    CANCELLED
+    FAILED,
+    REFUNDED
 }
