@@ -19,7 +19,7 @@ import java.util.UUID;
 @Data
 @RequiredArgsConstructor
 @AllArgsConstructor
-
+@Builder
 public class OrderResponse {
 
     private UUID id;
