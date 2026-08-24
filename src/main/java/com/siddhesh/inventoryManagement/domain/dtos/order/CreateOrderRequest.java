@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class CreateOrderRequest {
-
     private List<CreateOrderItemRequest> items;
-
     private UUID shippingAddressId;
-
     private BigDecimal discount;
 }

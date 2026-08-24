@@ -31,41 +31,41 @@ public class OrderMapper {
                 .active(product.getActive())
                 .build();
 
-        private OrderStatus status;
+//         private OrderStatus status;
 
-        private BigDecimal discount;
+//         private BigDecimal discount;
 
-        private BigDecimal tax;
-        private BigDecimal shipping_charges;
-        private BigDecimal grand_total;
-        private BigDecimal subtotal;
+//         private BigDecimal tax;
+//         private BigDecimal shipping_charges;
+//         private BigDecimal grand_total;
+//         private BigDecimal subtotal;
 
-        private PaymentStatus paymentStatus;
+//         private PaymentStatus paymentStatus;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", nullable = false)
-        private User user;
+//         @ManyToOne(fetch = FetchType.LAZY)
+//         @JoinColumn(name = "user_id", nullable = false)
+//         private User user;
 
-        @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-        @Builder.Default
-        private List<OrderItem> orderItems= new ArrayList<>();
+//         @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+//         @Builder.Default
+//         private List<OrderItem> orderItems= new ArrayList<>();
 
-//    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-//    @OneToMany(mappedBy = "order")
-//    @Builder.Default
-//    private List<StockTransaction> stockTransactions = new ArrayList<>();
+// //    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+// //    @OneToMany(mappedBy = "order")
+// //    @Builder.Default
+// //    private List<StockTransaction> stockTransactions = new ArrayList<>();
 
-        @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
-        @Builder.Default
-        private List<Payment> payments = new ArrayList<>();
+//         @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
+//         @Builder.Default
+//         private List<Payment> payments = new ArrayList<>();
 
-        @CreationTimestamp
-        @Column(name = "created_at", nullable = false, updatable = false)
-        private LocalDateTime createdAt;
+//         @CreationTimestamp
+//         @Column(name = "created_at", nullable = false, updatable = false)
+//         private LocalDateTime createdAt;
 
-        @UpdateTimestamp
-        @Column(name = "updated_at")
-        private LocalDateTime updatedAt;
+//         @UpdateTimestamp
+//         @Column(name = "updated_at")
+//         private LocalDateTime updatedAt;
 
 
 
