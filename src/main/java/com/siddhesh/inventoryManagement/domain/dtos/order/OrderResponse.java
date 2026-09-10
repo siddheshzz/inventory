@@ -23,15 +23,10 @@ import java.util.UUID;
 public class OrderResponse {
 
     private UUID id;
-
     private OrderStatus status;
-
     private BigDecimal subtotal;
-
     private BigDecimal discount;
-
     private BigDecimal tax;
-
     private BigDecimal shippingCharges;
 
     private BigDecimal grandTotal;
