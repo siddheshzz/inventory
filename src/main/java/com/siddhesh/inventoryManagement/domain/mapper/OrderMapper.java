@@ -7,9 +7,15 @@ import com.siddhesh.inventoryManagement.domain.entities.Order;
 import com.siddhesh.inventoryManagement.domain.entities.OrderItem;
 import com.siddhesh.inventoryManagement.domain.entities.User;
 
+import com.siddhesh.inventoryManagement.domain.entities.OrderStatus;
+import com.siddhesh.inventoryManagement.domain.entities.PaymentStatus;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
+@Component
 public class OrderMapper {
 
     /**
@@ -27,12 +33,15 @@ public class OrderMapper {
                 .discount(order.getDiscount())
                 .tax(order.getTax())
                 .subtotal(order.getSubtotal())
+                .shippingCharges(order.getShipping_charges())
+                .grandTotal(order.getGrand_total())
                 .paymentStatus(order.getPaymentStatus())
                 .userId(
                         order.getUser() != null
                                 ? order.getUser().getId()
                                 : null
                 )
+                .items(toOrderItemResponses(order.getOrderItems()))
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();
@@ -65,10 +74,13 @@ public class OrderMapper {
 
         return OrderItemResponse.builder()
                 .id(orderItem.getId())
-                // Add your actual OrderItem fields here
-                // .productId(orderItem.getProduct().getId())
-                // .quantity(orderItem.getQuantity())
-                // .price(orderItem.getPrice())
+                .productId(orderItem.getProduct() != null ? orderItem.getProduct().getId() : null)
+                .productName(orderItem.getProduct() != null ? orderItem.getProduct().getName() : null)
+                .quantity(orderItem.getQuantity())
+                .unitPrice(orderItem.getUnitPrice())
+                .discount(orderItem.getDiscount())
+                .tax(orderItem.getTax())
+                .lineTotal(orderItem.getLineTotal())
                 .build();
     }
 
@@ -90,11 +102,13 @@ public class OrderMapper {
 
         return Order.builder()
                 .user(user)
-                .discount(request.getDiscount())
-                .tax(request.getTax())
-                .shipping_charges(request.getShipping_charges())
-                .subtotal(request.getSubtotal())
-                .grand_total(request.getGrand_total())
+                .discount(request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO)
+                .status(OrderStatus.PENDING)
+                .paymentStatus(PaymentStatus.PENDING)
+                .subtotal(BigDecimal.ZERO)
+                .tax(BigDecimal.ZERO)
+                .shipping_charges(BigDecimal.ZERO)
+                .grand_total(BigDecimal.ZERO)
                 .build();
     }
 
