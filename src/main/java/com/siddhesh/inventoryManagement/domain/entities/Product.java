@@ -4,6 +4,7 @@ package com.siddhesh.inventoryManagement.domain.entities;
 import jakarta.persistence.*;
 
 import lombok.*;
+import org.hibernate.annotations.Check;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "product")
+@Check(constraints = "quantity >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

@@ -73,7 +73,7 @@ public class OrderServiceImpl implements OrderService {
                 throw new RuntimeException("Quantity must be at least 1");
             }
 
-            Product product = productRepository.findById(itemReq.getProductId())
+            Product product = productRepository.findByIdForUpdate(itemReq.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + itemReq.getProductId()));
 
             if (product.getQuantity() < itemReq.getQuantity()) {
@@ -137,7 +137,8 @@ public class OrderServiceImpl implements OrderService {
 
         if (status == OrderStatus.CANCELLED) {
             for (OrderItem item : order.getOrderItems()) {
-                Product product = item.getProduct();
+                Product product = productRepository.findByIdForUpdate(item.getProduct().getId())
+                        .orElseThrow(() -> new RuntimeException("Product not found: " + item.getProduct().getId()));
                 product.setQuantity(product.getQuantity() + item.getQuantity());
 
                 StockTransaction tx = StockTransaction.builder()
@@ -172,7 +173,7 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Quantity must be at least 1");
         }
 
-        Product product = productRepository.findById(itemRequest.getProductId())
+        Product product = productRepository.findByIdForUpdate(itemRequest.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found: " + itemRequest.getProductId()));
 
         if (product.getQuantity() < itemRequest.getQuantity()) {
@@ -256,7 +257,8 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Cannot remove last item, cancel order instead");
         }
 
-        Product product = item.getProduct();
+        Product product = productRepository.findByIdForUpdate(item.getProduct().getId())
+                .orElseThrow(() -> new RuntimeException("Product not found: " + item.getProduct().getId()));
 
         // Past transactions (e.g. the SALE written when this line was added)
         // point at this row. Null the link first so the audit trail survives
