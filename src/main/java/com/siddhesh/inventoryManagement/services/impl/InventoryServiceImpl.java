@@ -47,7 +47,7 @@ public class InventoryServiceImpl implements InventoryService {
             throw new RuntimeException("Quantity must be at least 1");
         }
 
-        Product product = productRepository.findById(request.productId())
+        Product product = productRepository.findByIdForUpdate(request.productId())
                 .orElseThrow(() -> new RuntimeException("Product not found: " + request.productId()));
 
         User admin = userRepository.findById(adminUserId)
