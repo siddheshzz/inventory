@@ -60,6 +60,11 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Order must contain at least one item");
         }
 
+        if (createOrderRequest.getDiscount() != null
+                && createOrderRequest.getDiscount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Discount cannot be negative");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
@@ -100,6 +105,9 @@ public class OrderServiceImpl implements OrderService {
         }
 
         BigDecimal discount = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        if (discount.compareTo(subtotal) > 0) {
+            throw new RuntimeException("Discount cannot exceed subtotal");
+        }
         order.setSubtotal(subtotal);
         order.setGrand_total(subtotal.subtract(discount));
 
@@ -274,7 +282,7 @@ public class OrderServiceImpl implements OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal discount = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
         order.setSubtotal(subtotal);
-        order.setGrand_total(subtotal.subtract(discount));
+        order.setGrand_total(subtotal.subtract(discount).max(BigDecimal.ZERO));
 
         product.setQuantity(product.getQuantity() + item.getQuantity());
 
