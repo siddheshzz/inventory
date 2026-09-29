@@ -23,6 +23,8 @@ public interface OrderService {
 
     OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId);
 
+    OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId, String idempotencyKey);
+
     OrderResponse addItem(UUID orderId, CreateOrderItemRequest itemRequest);
 
     OrderResponse removeItem(UUID orderId, UUID itemId);

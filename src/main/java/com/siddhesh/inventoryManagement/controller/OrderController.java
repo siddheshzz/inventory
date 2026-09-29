@@ -33,8 +33,9 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             @RequestBody CreateOrderRequest payload,
-            @RequestParam UUID userId){
-        OrderResponse created = orderService.createOrder(payload, userId);
+            @RequestParam UUID userId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey){
+        OrderResponse created = orderService.createOrder(payload, userId, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

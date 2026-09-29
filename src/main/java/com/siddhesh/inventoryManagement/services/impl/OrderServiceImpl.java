@@ -9,6 +9,7 @@ import com.siddhesh.inventoryManagement.domain.entities.StockTransaction;
 import com.siddhesh.inventoryManagement.domain.entities.StockTransactionType;
 import com.siddhesh.inventoryManagement.domain.entities.User;
 import com.siddhesh.inventoryManagement.domain.mapper.OrderMapper;
+import com.siddhesh.inventoryManagement.repositories.OrderIdempotencyRepository;
 import com.siddhesh.inventoryManagement.repositories.OrderRepository;
 import com.siddhesh.inventoryManagement.repositories.ProductRepository;
 import com.siddhesh.inventoryManagement.repositories.StockTransactionRepository;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderIdempotencyRepository orderIdempotencyRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final StockTransactionRepository stockTransactionRepository;
@@ -56,6 +58,19 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId) {
+        return createOrder(createOrderRequest, userId, null);
+    }
+
+    @Transactional
+    @Override
+    public OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId, String idempotencyKey) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            var existing = orderIdempotencyRepository.findById(idempotencyKey);
+            if (existing.isPresent()) {
+                return orderMapper.toResponse(existing.get().getOrder());
+            }
+        }
+
         if (createOrderRequest.getItems() == null || createOrderRequest.getItems().isEmpty()) {
             throw new RuntimeException("Order must contain at least one item");
         }
@@ -125,6 +140,14 @@ public class OrderServiceImpl implements OrderService {
                     .reference("ORDER:" + saved.getId())
                     .build();
             stockTransactionRepository.save(tx);
+        }
+
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            orderIdempotencyRepository.save(
+                    com.siddhesh.inventoryManagement.domain.entities.OrderIdempotency.builder()
+                            .key(idempotencyKey)
+                            .order(saved)
+                            .build());
         }
 
         return orderMapper.toResponse(saved);
