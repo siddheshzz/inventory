@@ -23,6 +23,12 @@ public class OrderIdempotency {
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
+    @Column(name = "request_hash")
+    private String requestHash;
+
+    @Column(name = "expires_at", nullable = false, updatable = false)
+    private LocalDateTime expiresAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

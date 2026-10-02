@@ -16,6 +16,7 @@ import com.siddhesh.inventoryManagement.repositories.StockTransactionRepository;
 import com.siddhesh.inventoryManagement.repositories.UserRepository;
 import com.siddhesh.inventoryManagement.services.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,10 +65,21 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId, String idempotencyKey) {
+        String requestHash = null;
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            requestHash = fingerprint(createOrderRequest, userId);
             var existing = orderIdempotencyRepository.findById(idempotencyKey);
             if (existing.isPresent()) {
-                return orderMapper.toResponse(existing.get().getOrder());
+                if (existing.get().getExpiresAt() != null
+                        && existing.get().getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+                    orderIdempotencyRepository.delete(existing.get());
+                } else {
+                    String storedHash = existing.get().getRequestHash();
+                    if (storedHash != null && !storedHash.equals(requestHash)) {
+                        throw new com.siddhesh.inventoryManagement.config.Exception.IdempotencyConflictException(idempotencyKey);
+                    }
+                    return orderMapper.toResponse(existing.get().getOrder());
+                }
             }
         }
 
@@ -147,10 +159,40 @@ public class OrderServiceImpl implements OrderService {
                     com.siddhesh.inventoryManagement.domain.entities.OrderIdempotency.builder()
                             .key(idempotencyKey)
                             .order(saved)
+                            .requestHash(requestHash)
+                            .expiresAt(java.time.LocalDateTime.now().plusHours(24))
                             .build());
         }
 
         return orderMapper.toResponse(saved);
+    }
+
+    @Scheduled(fixedDelay = 3600000)
+    @Transactional
+    public void purgeExpiredIdempotencyKeys() {
+        orderIdempotencyRepository.deleteByExpiresAtBefore(java.time.LocalDateTime.now());
+    }
+
+    private String fingerprint(CreateOrderRequest request, UUID userId) {
+        String items = request.getItems().stream()
+                .sorted(java.util.Comparator.comparing(
+                        i -> String.valueOf(i.getProductId())))
+                .map(i -> i.getProductId() + ":" + i.getQuantity())
+                .collect(java.util.stream.Collectors.joining(","));
+        String canonical = userId + "|" + request.getDiscount() + "|" + items;
+        try {
+            java.security.MessageDigest digest =
+                    java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(
+                    canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     @Transactional
