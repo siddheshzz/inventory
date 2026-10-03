@@ -10,7 +10,7 @@
 //   GET /api/v1/user/me, PATCH /api/v1/user/me
 //   GET /api/v1/user, GET/PUT/DELETE /api/v1/user/{id} (ADMIN)
 //   GET /api/v1/orders (ADMIN)
-//   POST /api/v1/orders?userId={uuid} (USER,ADMIN) { items:[{productId, quantity}], discount? }
+//   POST /api/v1/orders (USER,ADMIN, owner = JWT principal) { items:[{productId, quantity}], discount? }
 //     -> 201 OrderResponse { id, status, subtotal, discount, tax, shippingCharges,
 //        grandTotal, paymentStatus, userId, items:[{id, productId, productName,
 //        quantity, unitPrice, discount, tax, lineTotal}], createdAt, updatedAt }
@@ -92,8 +92,8 @@ export const usersApi = {
 export const ordersApi = {
   list: () => api('/api/v1/orders'),
   get: (id) => api(`/api/v1/orders/${id}`),
-  create: (userId, payload) =>
-    api(`/api/v1/orders?userId=${userId}`, { method: 'POST', body: payload }),
+  create: (payload) =>
+    api('/api/v1/orders', { method: 'POST', body: payload }),
   // POST /api/v1/orders/{id}/items (USER,ADMIN) { productId, quantity }
   // PENDING orders only; decrements stock + SALE tx. -> 201 updated order.
   addItem: (orderId, payload) =>
@@ -112,10 +112,10 @@ export const inventoryApi = {
   // GET /api/v1/inventory/products/{id}/stock-verify (ADMIN)
   // -> { productId, cachedQuantity, ledgerQuantity, match }
   verifyStock: (productId) => api(`/api/v1/inventory/products/${productId}/stock-verify`),
-  // POST /api/v1/inventory/purchase?adminUserId={uuid} (ADMIN)
+  // POST /api/v1/inventory/purchase (ADMIN, actor = JWT principal)
   // body { productId, quantity, reference? } -> 201 StockVerifyResponse
-  purchase: (adminUserId, payload) =>
-    api(`/api/v1/inventory/purchase?adminUserId=${adminUserId}`, { method: 'POST', body: payload }),
+  purchase: (payload) =>
+    api('/api/v1/inventory/purchase', { method: 'POST', body: payload }),
 };
 
 // ---------------------------------------------------------------------------

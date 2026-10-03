@@ -2,6 +2,7 @@ package com.siddhesh.inventoryManagement.controller;
 
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.PurchaseRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.StockVerifyResponse;
+import com.siddhesh.inventoryManagement.security.CurrentUser;
 import com.siddhesh.inventoryManagement.services.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final CurrentUser currentUser;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/products/{id}/stock-verify")
@@ -27,17 +29,15 @@ public class InventoryController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/purchase")
     public ResponseEntity<StockVerifyResponse> purchase(
-            @RequestBody PurchaseRequest payload,
-            @RequestParam UUID adminUserId) {
-        StockVerifyResponse result = inventoryService.purchase(payload, adminUserId);
+            @RequestBody PurchaseRequest payload) {
+        StockVerifyResponse result = inventoryService.purchase(payload, currentUser.requireUser());
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}/stock-reconcile")
     public ResponseEntity<StockVerifyResponse> reconcile(
-            @PathVariable UUID id,
-            @RequestParam UUID adminUserId) {
-        return ResponseEntity.ok(inventoryService.reconcile(id, adminUserId));
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(inventoryService.reconcile(id, currentUser.requireUser()));
     }
 }

@@ -5,6 +5,7 @@ import com.siddhesh.inventoryManagement.domain.dtos.order.OrderResponse;
 import com.siddhesh.inventoryManagement.domain.entities.OrderItem;
 import com.siddhesh.inventoryManagement.domain.entities.OrderStatus;
 import com.siddhesh.inventoryManagement.domain.entities.Product;
+import com.siddhesh.inventoryManagement.domain.entities.Role;
 import com.siddhesh.inventoryManagement.domain.entities.StockTransaction;
 import com.siddhesh.inventoryManagement.domain.entities.StockTransactionType;
 import com.siddhesh.inventoryManagement.domain.entities.User;
@@ -49,25 +50,41 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional(readOnly = true)
     @Override
-    public OrderResponse getOrderById(UUID id) {
+    public OrderResponse getOrderById(UUID id, User caller) {
         com.siddhesh.inventoryManagement.domain.entities.Order order =
                 orderRepository.findById(id)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + id));
+        assertOwnerOrAdmin(order, caller);
         return orderMapper.toResponse(order);
     }
 
-    @Transactional
-    @Override
-    public OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId) {
-        return createOrder(createOrderRequest, userId, null);
+    private static void assertOwnerOrAdmin(
+            com.siddhesh.inventoryManagement.domain.entities.Order order, User caller) {
+        boolean owner = order.getUser().getId().equals(caller.getId());
+        boolean admin = caller.getRole() == Role.ADMIN;
+        if (!owner && !admin) {
+            throw new RuntimeException("Not your order");
+        }
+    }
+
+    private static void assertAdmin(User caller) {
+        if (caller.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Admin only");
+        }
     }
 
     @Transactional
     @Override
-    public OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId, String idempotencyKey) {
+    public OrderResponse createOrder(CreateOrderRequest createOrderRequest, User caller) {
+        return createOrder(createOrderRequest, caller, null);
+    }
+
+    @Transactional
+    @Override
+    public OrderResponse createOrder(CreateOrderRequest createOrderRequest, User caller, String idempotencyKey) {
         String requestHash = null;
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            requestHash = fingerprint(createOrderRequest, userId);
+            requestHash = fingerprint(createOrderRequest, caller.getId());
             var existing = orderIdempotencyRepository.findById(idempotencyKey);
             if (existing.isPresent()) {
                 if (existing.get().getExpiresAt() != null
@@ -92,8 +109,8 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Discount cannot be negative");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
         com.siddhesh.inventoryManagement.domain.entities.Order order =
                 orderMapper.toEntity(createOrderRequest, user);
@@ -197,13 +214,17 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
-    public OrderResponse updateOrderStatus(UUID id, OrderStatus status) {
+    public OrderResponse updateOrderStatus(UUID id, OrderStatus status, User caller) {
+        assertAdmin(caller);
+        User actor = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
         com.siddhesh.inventoryManagement.domain.entities.Order order =
                 orderRepository.findById(id)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + id));
 
-        if (order.getStatus() == OrderStatus.DELIVERED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Order is already terminal: " + order.getStatus());
+        if (!isAllowedTransition(order.getStatus(), status)) {
+            throw new RuntimeException(
+                    "Illegal status transition: " + order.getStatus() + " -> " + status);
         }
 
         order.setStatus(status);
@@ -220,7 +241,7 @@ public class OrderServiceImpl implements OrderService {
                         .orderItem(item)
                         .type(StockTransactionType.RETURN)
                         .quantityChange(item.getQuantity())
-                        .createdBy(order.getUser())
+                        .createdBy(actor)
                         .reference("CANCEL:" + order.getId())
                         .build();
                 stockTransactionRepository.save(tx);
@@ -231,12 +252,29 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toResponse(saved);
     }
 
+    private static boolean isAllowedTransition(OrderStatus from, OrderStatus to) {
+        if (from == to) {
+            return true;
+        }
+        return switch (from) {
+            case PENDING -> to == OrderStatus.CONFIRMED || to == OrderStatus.CANCELLED;
+            case CONFIRMED -> to == OrderStatus.PROCESSING || to == OrderStatus.CANCELLED;
+            case PROCESSING -> to == OrderStatus.SHIPPED || to == OrderStatus.CANCELLED;
+            case SHIPPED -> to == OrderStatus.DELIVERED;
+            case DELIVERED, CANCELLED -> false;
+        };
+    }
+
     @Transactional
     @Override
-    public OrderResponse addItem(UUID orderId, com.siddhesh.inventoryManagement.domain.dtos.order.CreateOrderItemRequest itemRequest) {
+    public OrderResponse addItem(UUID orderId, com.siddhesh.inventoryManagement.domain.dtos.order.CreateOrderItemRequest itemRequest, User caller) {
         com.siddhesh.inventoryManagement.domain.entities.Order order =
                 orderRepository.findById(orderId)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
+        assertOwnerOrAdmin(order, caller);
+        User actor = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new RuntimeException("Only PENDING orders can be edited: " + order.getStatus());
@@ -302,7 +340,7 @@ public class OrderServiceImpl implements OrderService {
                 .orderItem(managedItem)
                 .type(StockTransactionType.SALE)
                 .quantityChange(-item.getQuantity())
-                .createdBy(order.getUser())
+                .createdBy(actor)
                 .reference("ORDER-ADD:" + saved.getId())
                 .build();
         stockTransactionRepository.save(tx);
@@ -312,10 +350,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
-    public OrderResponse removeItem(UUID orderId, UUID itemId) {
+    public OrderResponse removeItem(UUID orderId, UUID itemId, User caller) {
         com.siddhesh.inventoryManagement.domain.entities.Order order =
                 orderRepository.findById(orderId)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
+        assertOwnerOrAdmin(order, caller);
+        User actor = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new RuntimeException("Only PENDING orders can be edited: " + order.getStatus());
@@ -358,7 +400,7 @@ public class OrderServiceImpl implements OrderService {
                 .order(saved)
                 .type(StockTransactionType.RETURN)
                 .quantityChange(item.getQuantity())
-                .createdBy(order.getUser())
+                .createdBy(actor)
                 .reference("ORDER-REMOVE:" + saved.getId() + ":" + itemId)
                 .build();
         stockTransactionRepository.save(tx);

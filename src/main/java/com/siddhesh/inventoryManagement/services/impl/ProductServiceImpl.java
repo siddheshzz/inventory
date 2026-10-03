@@ -10,8 +10,10 @@ import com.siddhesh.inventoryManagement.domain.dtos.ProductResponse;
 import com.siddhesh.inventoryManagement.domain.dtos.ProductUpdateRequest;
 import com.siddhesh.inventoryManagement.domain.entities.Product;
 import com.siddhesh.inventoryManagement.domain.entities.ProductCategory;
+import com.siddhesh.inventoryManagement.domain.entities.OrderStatus;
 
 import com.siddhesh.inventoryManagement.domain.mapper.ProductMapper;
+import com.siddhesh.inventoryManagement.repositories.OrderItemRepository;
 import com.siddhesh.inventoryManagement.repositories.ProductCategoryRepository;
 import com.siddhesh.inventoryManagement.repositories.ProductRepository;
 import com.siddhesh.inventoryManagement.services.ProductService;
@@ -31,6 +33,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final ProductCategoryRepository categoryRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductMapper productMapper;
 
     @Override
@@ -119,7 +122,21 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
-        productRepository.delete(product);
+        boolean referencedByOpenOrder = orderItemRepository.existsByProductIdAndOrderStatusIn(
+                id,
+                java.util.List.of(
+                        OrderStatus.PENDING,
+                        OrderStatus.CONFIRMED,
+                        OrderStatus.PROCESSING,
+                        OrderStatus.SHIPPED));
+
+        if (referencedByOpenOrder) {
+            throw new RuntimeException("Cannot deactivate product with open orders: " + id);
+        }
+
+        product.setActive(false);
+
+        productRepository.save(product);
     }
 }
 

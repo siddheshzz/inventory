@@ -306,10 +306,6 @@ export default function Orders() {
   const placeOrder = async (e) => {
     e.preventDefault();
     setNotice(null);
-    if (!profile?.id) {
-      setNotice({ type: 'error', text: 'Profile not loaded yet — cannot determine userId. Reload the page.' });
-      return;
-    }
     const items = Object.entries(lines).map(([productId, quantity]) => ({ productId, quantity }));
     if (items.length === 0) {
       setNotice({ type: 'error', text: 'Add at least one item to the order.' });
@@ -318,7 +314,7 @@ export default function Orders() {
     setPlacing(true);
     try {
       const payload = { items, ...(totals.disc > 0 ? { discount: totals.disc } : {}) };
-      const created = await ordersApi.create(profile.id, payload);
+      const created = await ordersApi.create(payload);
       setConfirmation(created);
       setSessionOrders((prev) => [created, ...prev].slice(0, 50));
       setModal(false);
@@ -349,7 +345,7 @@ export default function Orders() {
         <div>
           <h1>Orders</h1>
           <p>
-            <span className="kbd">POST /orders?userId=…</span> creates an order.{' '}
+            <span className="kbd">POST /orders</span> creates an order as you.{' '}
             PENDING orders can gain/lose lines (all roles); status transitions are admin-only,
             and cancelling restores stock.
           </p>
@@ -413,7 +409,7 @@ export default function Orders() {
             <h3>New order</h3>
             <p className="sub">
               Ordering as <b>{profile?.name || profile?.phoneNumber}</b> ·{' '}
-              <span className="kbd">POST /orders?userId={profile?.id?.slice(0, 8)}…</span>
+              <span className="kbd">POST /orders (you)</span>
             </p>
             <form onSubmit={placeOrder}>
               <input

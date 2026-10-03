@@ -3,7 +3,7 @@ import { friendlyError, inventoryApi, productsApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 export default function Inventory() {
-  const { profile, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
@@ -70,10 +70,6 @@ export default function Inventory() {
   const runPurchase = async (e) => {
     e.preventDefault();
     setNotice(null);
-    if (!profile?.id) {
-      setNotice({ type: 'error', text: 'Profile not loaded yet — reload the page.' });
-      return;
-    }
     const qty = Number(restockQty);
     if (!selectedId || !Number.isInteger(qty) || qty < 1) {
       setNotice({ type: 'error', text: 'Enter a whole quantity of at least 1.' });
@@ -81,7 +77,7 @@ export default function Inventory() {
     }
     setPurchasing(true);
     try {
-      const res = await inventoryApi.purchase(profile.id, {
+      const res = await inventoryApi.purchase({
         productId: selectedId,
         quantity: qty,
         ...(reference.trim() ? { reference: reference.trim() } : {}),
@@ -202,7 +198,7 @@ export default function Inventory() {
           <div className="card">
             <h3 style={{ margin: '0 0 4px' }}>Restock (purchase)</h3>
             <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}>
-              <span className="kbd">POST /inventory/purchase?adminUserId=…</span> · adds stock + writes PURCHASE tx
+              <span className="kbd">POST /inventory/purchase</span> · adds stock + writes PURCHASE tx
             </p>
             <form onSubmit={runPurchase}>
               <div className="field"><label className="label">Quantity to add</label>

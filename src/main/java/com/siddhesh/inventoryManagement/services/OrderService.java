@@ -5,6 +5,7 @@ import com.siddhesh.inventoryManagement.domain.dtos.order.CreateOrderRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.order.OrderResponse;
 import com.siddhesh.inventoryManagement.domain.entities.Order;
 import com.siddhesh.inventoryManagement.domain.entities.OrderStatus;
+import com.siddhesh.inventoryManagement.domain.entities.User;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,17 +18,17 @@ public interface OrderService {
     List<OrderResponse> listOrders();
 //
 //    GET    /api/v1/orders/{id}
-    OrderResponse getOrderById(UUID id);
+    OrderResponse getOrderById(UUID id, User caller);
 //
 //    POST   /api/v1/order
 
-    OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId);
+    OrderResponse createOrder(CreateOrderRequest createOrderRequest, User caller);
 
-    OrderResponse createOrder(CreateOrderRequest createOrderRequest, UUID userId, String idempotencyKey);
+    OrderResponse createOrder(CreateOrderRequest createOrderRequest, User caller, String idempotencyKey);
 
-    OrderResponse addItem(UUID orderId, CreateOrderItemRequest itemRequest);
+    OrderResponse addItem(UUID orderId, CreateOrderItemRequest itemRequest, User caller);
 
-    OrderResponse removeItem(UUID orderId, UUID itemId);
+    OrderResponse removeItem(UUID orderId, UUID itemId, User caller);
 
 
 
@@ -35,7 +36,7 @@ public interface OrderService {
 
 //
 //    PATCH  /api/v1/orders/{id}/status
-    OrderResponse updateOrderStatus(UUID id, OrderStatus status);
+    OrderResponse updateOrderStatus(UUID id, OrderStatus status, User caller);
 //
 //    DELETE /api/v1/orders/{id}
     //just mark as inactive or some check without deleteing

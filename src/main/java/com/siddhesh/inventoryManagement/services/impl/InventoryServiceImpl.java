@@ -3,6 +3,7 @@ package com.siddhesh.inventoryManagement.services.impl;
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.PurchaseRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.StockVerifyResponse;
 import com.siddhesh.inventoryManagement.domain.entities.Product;
+import com.siddhesh.inventoryManagement.domain.entities.Role;
 import com.siddhesh.inventoryManagement.domain.entities.StockTransaction;
 import com.siddhesh.inventoryManagement.domain.entities.StockTransactionType;
 import com.siddhesh.inventoryManagement.domain.entities.User;
@@ -40,9 +41,16 @@ public class InventoryServiceImpl implements InventoryService {
         );
     }
 
+    private static void assertAdmin(User caller) {
+        if (caller.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Admin only");
+        }
+    }
+
     @Transactional
     @Override
-    public StockVerifyResponse purchase(PurchaseRequest request, UUID adminUserId) {
+    public StockVerifyResponse purchase(PurchaseRequest request, User caller) {
+        assertAdmin(caller);
         if (request.quantity() == null || request.quantity() < 1) {
             throw new RuntimeException("Quantity must be at least 1");
         }
@@ -50,8 +58,8 @@ public class InventoryServiceImpl implements InventoryService {
         Product product = productRepository.findByIdForUpdate(request.productId())
                 .orElseThrow(() -> new RuntimeException("Product not found: " + request.productId()));
 
-        User admin = userRepository.findById(adminUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + adminUserId));
+        User admin = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
         product.setQuantity(product.getQuantity() + request.quantity());
 
@@ -76,12 +84,13 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Transactional
     @Override
-    public StockVerifyResponse reconcile(UUID productId, UUID adminUserId) {
+    public StockVerifyResponse reconcile(UUID productId, User caller) {
+        assertAdmin(caller);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
-        User admin = userRepository.findById(adminUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + adminUserId));
+        User admin = userRepository.findById(caller.getId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
         long ledger = stockTransactionRepository.sumQuantityChangeByProductId(productId);
         long diff = (long) product.getQuantity() - ledger;
