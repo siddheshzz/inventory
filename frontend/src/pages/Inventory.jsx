@@ -12,6 +12,7 @@ export default function Inventory() {
   const [restockQty, setRestockQty] = useState('');
   const [reference, setReference] = useState('');
   const [purchasing, setPurchasing] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [notice, setNotice] = useState(null);
 
   useEffect(() => {
@@ -67,8 +68,28 @@ export default function Inventory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  const runPurchase = async (e) => {
-    e.preventDefault();
+  const runReconcile = async () => {
+    if (!selectedId) return;
+    setReconciling(true);
+    setNotice(null);
+    try {
+      const res = await inventoryApi.reconcile(selectedId);
+      setVerify(res);
+      setNotice({
+        type: 'ok',
+        text: res.match
+          ? `Reconciled — balancing ADJUSTMENT written, cached ${res.cachedQuantity} = ledger ${res.ledgerQuantity}.`
+          : 'Reconcile ran but they still disagree — check backend logs.',
+      });
+      await refreshProducts();
+    } catch (e) {
+      setNotice({ type: 'error', text: friendlyError(e, 'Could not reconcile. Please try again.') });
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  const runPurchase = async (e) => {    e.preventDefault();
     setNotice(null);
     const qty = Number(restockQty);
     if (!selectedId || !Number.isInteger(qty) || qty < 1) {
@@ -182,11 +203,21 @@ export default function Inventory() {
                   </div>
                 </div>
                 {!verify.match && (
-                  <div className="alert error" style={{ margin: 0 }}>
-                    Cached and ledger disagree — stock was changed outside a transaction
-                    (e.g. manual DB edit). Restock below moves both together; for a pure
-                    correction the backend needs an adjust endpoint (not built yet).
-                  </div>
+                  <>
+                    <div className="alert error" style={{ margin: 0 }}>
+                      Cached and ledger disagree — stock was changed outside a transaction
+                      (e.g. manual DB edit). Reconciling writes a balancing{' '}
+                      <span className="kbd">ADJUSTMENT</span> of {verify.cachedQuantity - verify.ledgerQuantity} units.
+                    </div>
+                    <button
+                      className="btn"
+                      disabled={reconciling}
+                      onClick={runReconcile}
+                      title="POST /inventory/products/{id}/stock-reconcile"
+                    >
+                      {reconciling ? 'Reconciling…' : `Reconcile now (${verify.cachedQuantity - verify.ledgerQuantity > 0 ? '+' : ''}${verify.cachedQuantity - verify.ledgerQuantity})`}
+                    </button>
+                  </>
                 )}
                 <button className="btn ghost" onClick={() => runVerify()}>Re-check</button>
               </div>

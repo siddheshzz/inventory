@@ -10,11 +10,14 @@ import com.siddhesh.inventoryManagement.services.AuthService;
 import com.siddhesh.inventoryManagement.services.JwtService;
 import com.siddhesh.inventoryManagement.services.OtpService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -24,9 +27,12 @@ public class AuthServiceImpl implements AuthService {
     public void sendOtp(String phoneNumber) {
 
         System.out.println("INSIDE AUTH SERVICE SENDOTP");
+        log.info("INSIDE AUTH SERVICE SENDOTP");
+
         // redis db
         //generate a otp and send it to user and store it in redis
         String otp = otpService.generateOtp();
+        log.info("OTP::::::::"+otp);
         System.out.println("OTP::::::::"+otp);
         otpService.storeOtp(
                 phoneNumber,

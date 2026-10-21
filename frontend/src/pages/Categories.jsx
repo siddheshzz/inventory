@@ -25,7 +25,14 @@ export default function Categories() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // Non-admins can't call this endpoint at all — don't fire a doomed request.
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [isAdmin]);
 
   if (!isAdmin) {
     return (

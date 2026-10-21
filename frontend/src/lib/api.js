@@ -15,6 +15,10 @@
 //        grandTotal, paymentStatus, userId, items:[{id, productId, productName,
 //        quantity, unitPrice, discount, tax, lineTotal}], createdAt, updatedAt }
 //   NOTE: shippingAddressId is accepted but ignored server-side (no address flow yet).
+//   Order detail/edit/status: GET /orders/{id}, POST|DELETE /orders/{id}/items[/{itemId}],
+//   PATCH /orders/{id}/status?status= (non-owners get "Not your order").
+//   DELETE /products/{id} soft-deletes (active=false), blocked by open orders.
+//   POST /inventory/products/{id}/stock-reconcile writes the balancing ADJUSTMENT.
 
 const RAW_BASE = import.meta.env.VITE_API_URL || '';
 const BASE = RAW_BASE.replace(/\/$/, '');
@@ -28,12 +32,13 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function api(path, { method = 'GET', body, auth = true } = {}) {
+export async function api(path, { method = 'GET', body, auth = true, headers = {} } = {}) {
   const res = await fetch(url(path), {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...(auth ? authHeaders() : {}),
+      ...headers,
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
@@ -92,8 +97,15 @@ export const usersApi = {
 export const ordersApi = {
   list: () => api('/api/v1/orders'),
   get: (id) => api(`/api/v1/orders/${id}`),
-  create: (payload) =>
-    api('/api/v1/orders', { method: 'POST', body: payload }),
+  // POST /api/v1/orders (USER,ADMIN, owner = JWT principal).
+  // Pass an Idempotency-Key per submission: safe retries return the original
+  // order instead of a duplicate; same key + different body -> 409.
+  create: (payload, idempotencyKey) =>
+    api('/api/v1/orders', {
+      method: 'POST',
+      body: payload,
+      ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
+    }),
   // POST /api/v1/orders/{id}/items (USER,ADMIN) { productId, quantity }
   // PENDING orders only; decrements stock + SALE tx. -> 201 updated order.
   addItem: (orderId, payload) =>
@@ -116,6 +128,11 @@ export const inventoryApi = {
   // body { productId, quantity, reference? } -> 201 StockVerifyResponse
   purchase: (payload) =>
     api('/api/v1/inventory/purchase', { method: 'POST', body: payload }),
+  // POST /api/v1/inventory/products/{id}/stock-reconcile (ADMIN)
+  // Writes an ADJUSTMENT for (cached - ledger) so they match. No-op when matched.
+  // -> 200 StockVerifyResponse
+  reconcile: (productId) =>
+    api(`/api/v1/inventory/products/${productId}/stock-reconcile`, { method: 'POST' }),
 };
 
 // ---------------------------------------------------------------------------

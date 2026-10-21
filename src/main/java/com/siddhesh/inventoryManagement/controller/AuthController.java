@@ -7,6 +7,7 @@ import com.siddhesh.inventoryManagement.domain.dtos.OtpRequestDto;
 import com.siddhesh.inventoryManagement.domain.dtos.OtpVerificationDto;
 import com.siddhesh.inventoryManagement.services.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(path = "/api/v1/auth")
@@ -27,16 +29,19 @@ public class AuthController {
     @PostMapping("/send-otp")
     public ResponseEntity<Void> sendotp(@RequestBody OtpRequestDto otpRequest){
 
-        System.out.println("SEND-OTP");
+//        System.out.println("SEND-OTP");
+        log.info("SNED-OTP");
         authService.sendOtp(otpRequest.getPhoneNumber());
-        System.out.println("OUT OF THE AUTH SERVICE");
+//        System.out.println("OUT OF THE AUTH SERVICE");
+        log.info("OUT OF THE AUTH SERVUCE");
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<AuthResponse> verifyotp(@RequestBody OtpVerificationDto otpVerificationDto) throws ChangeSetPersister.NotFoundException {
-        System.out.println("VERIFY-OTP");
+//        System.out.println("VERIFY-OTP");
+        log.info("VERIFY OTP");
 
         return ResponseEntity.ok(authService.verifyOtp(otpVerificationDto));
 

@@ -135,7 +135,7 @@ function OrderCard({
                     <label className="label">Product (in stock only)</label>
                     <select className="select" value={addPid} onChange={(e) => { setAddPid(e.target.value); setAddQty(1); }}>
                       <option value="">Select…</option>
-                      {products.filter((p) => (p.quantity || 0) > 0).map((p) => (
+                      {products.filter((p) => p.active !== false && (p.quantity || 0) > 0).map((p) => (
                         <option key={p.id} value={p.id}>{p.name} — {money(p.price)} · stock {p.quantity}</option>
                       ))}
                     </select>
@@ -216,6 +216,9 @@ export default function Orders() {
   const [query, setQuery] = useState('');
   const [lines, setLines] = useState({}); // productId -> qty
   const [discount, setDiscount] = useState('');
+  // Fresh key per submission: retries of the same form return the original
+  // order instead of a duplicate; same key + different body -> 409.
+  const [idemKey, setIdemKey] = useState(() => crypto.randomUUID());
   const [placing, setPlacing] = useState(false);
   const [notice, setNotice] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
@@ -269,15 +272,23 @@ export default function Orders() {
     setLines({});
     setDiscount('');
     setQuery('');
+    setIdemKey(crypto.randomUUID());
     setModal(true);
   };
 
+  // Inactive (soft-deleted) products are hidden from pickers — the backend
+  // has no reactivate path, so ordering them would strand stock.
+  const orderableProducts = useMemo(
+    () => products.filter((p) => p.active !== false),
+    [products],
+  );
+
   const visibleProducts = useMemo(() => {
     const q = query.toLowerCase();
-    return products.filter(
+    return orderableProducts.filter(
       (p) => !q || p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q),
     );
-  }, [products, query]);
+  }, [orderableProducts, query]);
 
   const totals = useMemo(() => {
     let subtotal = 0;
@@ -314,7 +325,7 @@ export default function Orders() {
     setPlacing(true);
     try {
       const payload = { items, ...(totals.disc > 0 ? { discount: totals.disc } : {}) };
-      const created = await ordersApi.create(payload);
+      const created = await ordersApi.create(payload, idemKey);
       setConfirmation(created);
       setSessionOrders((prev) => [created, ...prev].slice(0, 50));
       setModal(false);
@@ -409,7 +420,8 @@ export default function Orders() {
             <h3>New order</h3>
             <p className="sub">
               Ordering as <b>{profile?.name || profile?.phoneNumber}</b> ·{' '}
-              <span className="kbd">POST /orders (you)</span>
+              <span className="kbd">POST /orders (you)</span> · key{' '}
+              <span className="mono" style={{ fontSize: 11 }}>{idemKey.slice(0, 8)}…</span> (safe to retry)
             </p>
             <form onSubmit={placeOrder}>
               <input

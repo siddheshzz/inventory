@@ -39,10 +39,10 @@ Passwordless OTP, matching `AuthController`:
 | Page | Backend |
 |---|---|
 | Overview | `GET /api/v1/products` (stats computed client-side) |
-| Products | `GET/POST/PATCH/DELETE /api/v1/products` (writes = ADMIN) |
+| Products | `GET/POST/PATCH /api/v1/products` (writes = ADMIN); `DELETE` soft-deletes (active=false), blocked by open orders, one-way (no reactivate) |
 | Categories | `GET/POST/PATCH/DELETE /api/v1/categorie` — note singular path, all ADMIN |
-| Orders | `POST /orders?userId=…` creates order; PENDING lines editable via `POST/DELETE /orders/{id}/items/{itemId}` (all roles, stock ± with SALE/RETURN txs); `GET /orders/{id}`; `PATCH /orders/{id}/status?status=` (ADMIN, CANCELLED restores stock, terminal states locked) |
-| Inventory | `GET /api/v1/inventory/products/{id}/stock-verify` (ADMIN) compares cached qty vs ledger; `POST /api/v1/inventory/purchase?adminUserId=…` (ADMIN) restocks + writes PURCHASE tx |
+| Orders | `POST /orders` (owner = JWT principal, `Idempotency-Key` per submission — retries return the original, changed body → 409); PENDING lines editable via `POST/DELETE /orders/{id}/items[/{itemId}]`; `PATCH /orders/{id}/status?status=` (ADMIN, CANCELLED restores stock, terminal locked, non-owners get "Not your order") |
+| Inventory | verify cached vs ledger; `POST /purchase` restocks (actor = JWT); `POST /products/{id}/stock-reconcile` writes the balancing ADJUSTMENT |
 | Team & Profile | `GET/PATCH /api/v1/user/me`, `GET /api/v1/user` (ADMIN list has a backend mapping quirk — error is surfaced in UI) |
 
 JWT role claim (`role`) is decoded client-side to gate admin UI.

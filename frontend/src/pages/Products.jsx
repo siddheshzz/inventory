@@ -103,24 +103,34 @@ export default function Products() {
     }
   };
 
+  // Backend soft-deletes: DELETE sets active=false (history is kept).
+  // Blocked with "Cannot deactivate product with open orders" while open
+  // PENDING/CONFIRMED/PROCESSING/SHIPPED orders reference the product.
   const confirmRemove = async () => {
     if (!pendingDelete) return;
+    const name = pendingDelete.name;
     setDeleting(true);
     setNotice(null);
     try {
       await productsApi.remove(pendingDelete.id);
-      setNotice({ type: 'ok', text: `“${pendingDelete.name}” deleted.` });
+      setNotice({ type: 'ok', text: `“${name}” deactivated — hidden from new orders, history kept.` });
       setPendingDelete(null);
       await load();
     } catch (err) {
       setPendingDelete(null);
-      if (isForeignKeyError(err)) {
+      const raw = err?.data?.message || err?.message || '';
+      if (/cannot deactivate/i.test(raw)) {
         setNotice({
           type: 'error',
-          text: `Couldn't delete “${pendingDelete.name}” — it has order or stock history linked to it. To delete it, that history must be archived first (currently a database-level task; ask your admin). The product is unchanged.`,
+          text: `Couldn't deactivate “${name}” — open orders still reference it. Complete or cancel those orders first, then try again. The product is unchanged.`,
+        });
+      } else if (isForeignKeyError(err)) {
+        setNotice({
+          type: 'error',
+          text: `Couldn't deactivate “${name}” — it has linked history. The product is unchanged.`,
         });
       } else {
-        setNotice({ type: 'error', text: friendlyError(err, `Couldn't delete “${pendingDelete.name}”. Please try again.`) });
+        setNotice({ type: 'error', text: friendlyError(err, `Couldn't deactivate “${name}”. Please try again.`) });
       }
     } finally {
       setDeleting(false);
@@ -132,7 +142,7 @@ export default function Products() {
       <div className="page-head">
         <div>
           <h1>Products</h1>
-          <p>{products.length} SKUs · live from <span className="kbd">GET /api/v1/products</span>. Create / edit / delete require ADMIN.</p>
+          <p>{products.length} SKUs · live from <span className="kbd">GET /api/v1/products</span>. Create / edit / deactivate require ADMIN.</p>
         </div>
         {isAdmin && <button className="btn" onClick={openCreate}>+ New product</button>}
       </div>
@@ -175,7 +185,11 @@ export default function Products() {
                     {isAdmin && (
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button className="btn ghost small" onClick={() => openEdit(p)}>Edit</button>{' '}
-                        <button className="btn danger small" onClick={() => setPendingDelete(p)}>Delete</button>
+                        {p.active === false ? (
+                          <span className="badge red" title="Deactivated products cannot be reactivated via the API">retired</span>
+                        ) : (
+                          <button className="btn danger small" onClick={() => setPendingDelete(p)}>Deactivate</button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -230,14 +244,15 @@ export default function Products() {
 
       {pendingDelete && (
         <ConfirmDelete
-          title="Delete product?"
+          title="Deactivate product?"
           itemName={pendingDelete.name}
+          sub={<>“<b>{pendingDelete.name}</b>” will become <b>inactive</b> — hidden from new orders, history kept. There is currently no reactivate option.</>}
           requirements={[
-            'No orders contain this product.',
-            'No stock transactions reference it (purchases, sales, adjustments).',
+            'No open orders (PENDING, CONFIRMED, PROCESSING or SHIPPED) contain this product.',
           ]}
-          blockedHint="If history exists, deletion is blocked to protect your records. Archive that history first (currently needs direct database access) — the product will stay exactly as it is."
-          confirmLabel="Delete product"
+          blockedHint="If open orders reference it, deactivation is blocked — complete or cancel those orders first, then try again."
+          confirmLabel="Deactivate product"
+          ackLabel="I understand this hides the product from new orders and can't be undone here."
           busy={deleting}
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmRemove}
