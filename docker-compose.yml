@@ -46,6 +46,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=super_secure_password
       - SPRING_DATA_REDIS_HOST=redis-cache
       - SPRING_DATA_REDIS_PORT=6379
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
     networks:
       - inventory-network
 

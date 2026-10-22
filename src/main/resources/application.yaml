@@ -38,4 +38,6 @@ server:
   error:
     # Boot 3 key — inactive on Boot 4 (kept for reference).
     include-message: always
-
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
