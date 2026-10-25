@@ -27,7 +27,7 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method")
     private PaymentMethod paymentMethod; // e.g., "STRIPE", "PAYPAL", "COD"
 
     @Column(name = "transaction_reference")
@@ -36,6 +36,12 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status; // SUCCESS, FAILED, PENDING
+
+    @Column(name = "gateway_order_id", unique = true)
+    private String gatewayOrderId;
+
+    @Column(length = 3)
+    private String currency;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

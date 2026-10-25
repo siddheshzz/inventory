@@ -2,6 +2,8 @@ package com.siddhesh.inventoryManagement.services;
 
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.siddhesh.inventoryManagement.repositories.OrderRepository;
+import com.siddhesh.inventoryManagement.repositories.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,9 @@ import org.springframework.beans.factory.annotation.Value;
 @Service
 @RequiredArgsConstructor
 public class RazorpayPaymentService {
+
+    private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
 
     private final RazorpayClient razorpayClient;
     @Value("${razorpay.key-secret}")
