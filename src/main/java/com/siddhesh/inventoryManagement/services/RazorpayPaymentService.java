@@ -8,6 +8,7 @@ import com.siddhesh.inventoryManagement.repositories.OrderRepository;
 import com.siddhesh.inventoryManagement.repositories.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import com.razorpay.Utils;
 import com.siddhesh.inventoryManagement.domain.dtos.payment.VerifyPaymentRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -148,6 +150,126 @@ public class RazorpayPaymentService {
                 gatewayOrderId,
                 amountInPaise,
                 "INR"
+        );
+    }
+
+    @Transactional(rollbackFor = RazorpayException.class)
+    public Map<String, Object> confirmPayment(
+            UUID orderId,
+            VerifyPaymentRequest request,
+            User caller
+    ) throws RazorpayException {
+
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Order not found"
+                ));
+
+        boolean owner = order.getUser().getId().equals(caller.getId());
+        boolean admin = caller.getRole() == Role.ADMIN;
+
+        if (!owner && !admin) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not your order"
+            );
+        }
+
+        Payment payment = paymentRepository
+                .findByGatewayOrderId(request.razorpayOrderId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Payment record not found"
+                ));
+
+        if (!payment.getOrder().getId().equals(order.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Payment belongs to another order"
+            );
+        }
+
+        JSONObject signatureDetails = new JSONObject();
+        signatureDetails.put(
+                "razorpay_order_id", payment.getGatewayOrderId()
+        );
+        signatureDetails.put(
+                "razorpay_payment_id", request.razorpayPaymentId()
+        );
+        signatureDetails.put(
+                "razorpay_signature", request.razorpaySignature()
+        );
+
+        if (!Utils.verifyPaymentSignature(signatureDetails, keySecret)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Invalid payment signature"
+            );
+        }
+
+        // Repeating confirmation for the same payment changes nothing.
+        if (payment.getStatus() == PaymentStatus.CONFIRMED) {
+            if (!request.razorpayPaymentId()
+                    .equals(payment.getTransactionReference())) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "A different payment was already confirmed"
+                );
+            }
+
+            return Map.of(
+                    "paymentId", payment.getId(),
+                    "orderId", order.getId(),
+                    "paymentStatus", payment.getStatus().name()
+            );
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING
+                || order.getPaymentStatus() != PaymentStatus.PENDING
+                || order.getStatus() != OrderStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Order or payment is no longer awaiting confirmation"
+            );
+        }
+
+        com.razorpay.Payment gatewayPayment =
+                razorpayClient.payments.fetch(request.razorpayPaymentId());
+
+        String gatewayOrderId = gatewayPayment.get("order_id");
+        String currency = gatewayPayment.get("currency");
+        String status = gatewayPayment.get("status");
+        Number amount = gatewayPayment.get("amount");
+
+        long expectedPaise = payment.getAmount()
+                .movePointRight(2)
+                .longValueExact();
+
+        boolean matches =
+                payment.getGatewayOrderId().equals(gatewayOrderId)
+                        && payment.getCurrency().equals(currency)
+                        && amount.longValue() == expectedPaise
+                        && payment.getAmount()
+                        .compareTo(order.getGrand_total()) == 0;
+
+        if (!matches) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment details do not match the saved order"
+            );
+        }
+
+        if (!"captured".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment is not captured yet"
+            );
+        }
+
+        payment.setTransactionReference(request.razorpayPaymentId());
+        payment.setStatus(PaymentStatus.CONFIRMED);
+        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+
+        return Map.of(
+                "paymentId", payment.getId(),
+                "orderId", order.getId(),
+                "paymentStatus", payment.getStatus().name()
         );
     }
 }

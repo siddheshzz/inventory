@@ -1,6 +1,8 @@
 package com.siddhesh.inventoryManagement.controller;
 
 import com.razorpay.RazorpayException;
+import com.siddhesh.inventoryManagement.domain.dtos.payment.CreatePaymentResponse;
+import com.siddhesh.inventoryManagement.security.CurrentUser;
 import com.siddhesh.inventoryManagement.services.RazorpayPaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,6 +12,7 @@ import com.siddhesh.inventoryManagement.domain.dtos.payment.VerifyPaymentRequest
 import jakarta.validation.Valid;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ import java.util.Map;
 public class RazorpayTestController {
 
     private final RazorpayPaymentService paymentService;
+    private final CurrentUser currentUser;
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/test-order")
@@ -42,5 +46,27 @@ public class RazorpayTestController {
             @PathVariable String paymentId
     ) throws RazorpayException {
         return paymentService.fetchTestPayment(paymentId);
+    }
+
+    @PostMapping("/orders/{orderId}/checkout")
+    public CreatePaymentResponse createCheckout(
+            @PathVariable UUID orderId
+    ) throws RazorpayException {
+        return paymentService.createPayment(
+                orderId,
+                currentUser.requireUser()
+        );
+    }
+
+    @PostMapping("/orders/{orderId}/confirm")
+    public Map<String, Object> confirmPayment(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody VerifyPaymentRequest request
+    ) throws RazorpayException {
+        return paymentService.confirmPayment(
+                orderId,
+                request,
+                currentUser.requireUser()
+        );
     }
 }

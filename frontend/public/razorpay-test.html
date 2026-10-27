@@ -5,7 +5,7 @@
     <title>Razorpay test</title>
 </head>
 <body>
-<h1>Test payment — ₹100</h1>
+<h1>Test payment — ₹4,000</h1>
 
 <p><input id="key" placeholder="Your test Key ID"></p>
 <p><input id="order" placeholder="Razorpay order ID from Postman"></p>
@@ -27,7 +27,7 @@
         const checkout = new Razorpay({
             key: key,
             order_id: orderId,
-            amount: 10000,
+            amount: 400000,
             currency: "INR",
             name: "Inventory learning project",
             description: "Test payment",

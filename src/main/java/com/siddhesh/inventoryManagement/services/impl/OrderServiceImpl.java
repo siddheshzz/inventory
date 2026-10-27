@@ -2,24 +2,16 @@ package com.siddhesh.inventoryManagement.services.impl;
 
 import com.siddhesh.inventoryManagement.domain.dtos.order.CreateOrderRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.order.OrderResponse;
-import com.siddhesh.inventoryManagement.domain.entities.OrderItem;
-import com.siddhesh.inventoryManagement.domain.entities.OrderStatus;
-import com.siddhesh.inventoryManagement.domain.entities.Product;
-import com.siddhesh.inventoryManagement.domain.entities.Role;
-import com.siddhesh.inventoryManagement.domain.entities.StockTransaction;
-import com.siddhesh.inventoryManagement.domain.entities.StockTransactionType;
-import com.siddhesh.inventoryManagement.domain.entities.User;
+import com.siddhesh.inventoryManagement.domain.entities.*;
 import com.siddhesh.inventoryManagement.domain.mapper.OrderMapper;
-import com.siddhesh.inventoryManagement.repositories.OrderIdempotencyRepository;
-import com.siddhesh.inventoryManagement.repositories.OrderRepository;
-import com.siddhesh.inventoryManagement.repositories.ProductRepository;
-import com.siddhesh.inventoryManagement.repositories.StockTransactionRepository;
-import com.siddhesh.inventoryManagement.repositories.UserRepository;
+import com.siddhesh.inventoryManagement.repositories.*;
 import com.siddhesh.inventoryManagement.services.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 
@@ -36,6 +28,17 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final OrderMapper orderMapper;
+    private final PaymentRepository paymentRepository;
+
+    private void assertNoPendingCheckout(UUID orderId) {
+        if (paymentRepository.existsByOrder_IdAndStatus(
+                orderId, PaymentStatus.PENDING)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Order cannot change while checkout is pending"
+            );
+        }
+    }
 
 
     @Transactional(readOnly = true)
@@ -218,15 +221,26 @@ public class OrderServiceImpl implements OrderService {
         assertAdmin(caller);
         User actor = userRepository.findById(caller.getId())
                 .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
-        com.siddhesh.inventoryManagement.domain.entities.Order order =
-                orderRepository.findById(id)
+        Order order =
+                orderRepository.findByIdForUpdate(id)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + id));
 
+        if (order.getStatus() == status) {
+            return orderMapper.toResponse(order);
+        }
+
+        assertNoPendingCheckout(order.getId());
         if (!isAllowedTransition(order.getStatus(), status)) {
             throw new RuntimeException(
                     "Illegal status transition: " + order.getStatus() + " -> " + status);
         }
-
+        if (status == OrderStatus.CANCELLED
+                && order.getPaymentStatus() == PaymentStatus.CONFIRMED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Paid orders require a refund-aware cancellation flow"
+            );
+        }
         order.setStatus(status);
 
         if (status == OrderStatus.CANCELLED) {
@@ -269,10 +283,17 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse addItem(UUID orderId, com.siddhesh.inventoryManagement.domain.dtos.order.CreateOrderItemRequest itemRequest, User caller) {
         com.siddhesh.inventoryManagement.domain.entities.Order order =
-                orderRepository.findById(orderId)
+                orderRepository.findByIdForUpdate(orderId)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
         assertOwnerOrAdmin(order, caller);
+        if (order.getPaymentStatus() != PaymentStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Items cannot change after payment"
+            );
+        }
+        assertNoPendingCheckout(order.getId());
         User actor = userRepository.findById(caller.getId())
                 .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 
@@ -352,10 +373,17 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse removeItem(UUID orderId, UUID itemId, User caller) {
         com.siddhesh.inventoryManagement.domain.entities.Order order =
-                orderRepository.findById(orderId)
+                orderRepository.findByIdForUpdate(orderId)
                         .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
         assertOwnerOrAdmin(order, caller);
+        if (order.getPaymentStatus() != PaymentStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Items cannot change after payment"
+            );
+        }
+        assertNoPendingCheckout(order.getId());
         User actor = userRepository.findById(caller.getId())
                 .orElseThrow(() -> new RuntimeException("User not found: " + caller.getId()));
 

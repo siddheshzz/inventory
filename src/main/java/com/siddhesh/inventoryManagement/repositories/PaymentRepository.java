@@ -13,4 +13,6 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             UUID orderId,
             PaymentStatus status
     );
+
+    boolean existsByOrder_IdAndStatus(UUID orderId, PaymentStatus status);
 }
