@@ -30,6 +30,13 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final PaymentRepository paymentRepository;
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<OrderResponse> listOwnOrders(User caller) {
+        return orderRepository.findByUser_IdOrderByCreatedAtDescIdDesc(caller.getId()).stream()
+                .map(orderMapper::toResponse).toList();
+    }
+
     private void assertNoPendingCheckout(UUID orderId) {
         if (paymentRepository.existsByOrder_IdAndStatus(
                 orderId, PaymentStatus.PENDING)) {

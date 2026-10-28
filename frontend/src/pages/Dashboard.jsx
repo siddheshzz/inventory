@@ -52,7 +52,7 @@ export default function Dashboard() {
       <div className="page-head">
         <div>
           <h1>Good day{profile?.name ? `, ${profile.name.split(' ')[0]}` : ''}.</h1>
-          <p>Live view of your Spring Boot inventory — stock levels, value and products needing attention.</p>
+          <p>Your inventory at a glance — availability, value and products needing attention.</p>
         </div>
         <Link to="/products"><button className="btn">Manage products →</button></Link>
       </div>
@@ -95,17 +95,17 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h3 style={{ margin: '0 0 4px' }}>System snapshot</h3>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}>What this demo wires up</p>
+          <h3 style={{ margin: '0 0 4px' }}>Your workspace</h3>
+          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}>Keep daily operations moving</p>
           <div style={{ display: 'grid', gap: 10, fontSize: 14 }}>
-            <div>◷ <b>Auth</b> — phone OTP (Redis, 5 min) → JWT <span className="kbd">role: {isAdmin ? 'ADMIN' : 'USER'}</span></div>
-            <div>▦ <b>Products</b> — {products.length} live from <span className="kbd">GET /products</span></div>
-            <div>◍ <b>Categories</b> — {catCount === null ? (isAdmin ? 'could not load' : 'admin-only endpoint') : `${catCount} categories`}</div>
-            <div>◈ <b>Inventory</b> — stock verify + restock under the Inventory tab (admin)</div>
-            <div>⛔ <b>Inactive</b> — {stats.inactive} products flagged inactive</div>
+            <Link to="/admin/orders">Review customer orders and update fulfilment →</Link>
+            <Link to="/admin/inventory">Receive stock and check product quantities →</Link>
+            <Link to="/admin/ledger">Review who recorded stock movements →</Link>
+            <div><b>Categories</b> — {catCount ?? '…'} product groups</div>
+            <div><b>Retired products</b> — {stats.inactive}</div>
           </div>
           <div className="alert info" style={{ marginTop: 16, marginBottom: 0 }}>
-            Orders are live — place one from the Orders tab. Each order decrements stock and writes <span className="kbd">SALE</span> transactions.
+            Stock is deducted when an order is placed. Unpaid orders can still hold stock while checkout is pending.
           </div>
         </div>
       </div>

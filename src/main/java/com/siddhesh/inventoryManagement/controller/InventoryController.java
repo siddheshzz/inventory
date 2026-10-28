@@ -2,6 +2,8 @@ package com.siddhesh.inventoryManagement.controller;
 
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.PurchaseRequest;
 import com.siddhesh.inventoryManagement.domain.dtos.inventory.StockVerifyResponse;
+import com.siddhesh.inventoryManagement.domain.dtos.inventory.StockTransactionResponse;
+import com.siddhesh.inventoryManagement.repositories.StockTransactionRepository;
 import com.siddhesh.inventoryManagement.security.CurrentUser;
 import com.siddhesh.inventoryManagement.services.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,6 +22,10 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final CurrentUser currentUser;
+    private final StockTransactionRepository stockTransactionRepository;
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ledger")
+    public ResponseEntity<List<StockTransactionResponse>> ledger() { return ResponseEntity.ok(stockTransactionRepository.findAllByOrderByCreatedAtDesc().stream().map(t -> new StockTransactionResponse(t.getId(), t.getProduct().getId(), t.getProduct().getName(), t.getType(), t.getQuantityChange(), t.getCreatedBy() != null ? t.getCreatedBy().getName() : "System", t.getOrder() != null ? t.getOrder().getId() : null, t.getReference(), t.getCreatedAt())).toList()); }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/products/{id}/stock-verify")

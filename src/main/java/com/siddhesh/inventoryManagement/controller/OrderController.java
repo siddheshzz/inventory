@@ -23,6 +23,12 @@ public class OrderController {
     private final OrderService orderService;
     private final CurrentUser currentUser;
 
+    @GetMapping("/mine")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<OrderResponse> myOrders() {
+        return orderService.listOwnOrders(currentUser.requireUser());
+    }
+
 //    GET    /api/v1/orders
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping

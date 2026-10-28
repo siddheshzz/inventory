@@ -87,6 +87,7 @@ export const categoriesApi = {
 };
 
 export const usersApi = {
+  create: (body) => api('/api/v1/user', { method: 'POST', body }),
   me: () => api('/api/v1/user/me'),
   updateMe: (payload) => api('/api/v1/user/me', { method: 'PATCH', body: payload }),
   list: () => api('/api/v1/user'),
@@ -94,7 +95,21 @@ export const usersApi = {
   removeById: (id) => api(`/api/v1/user/${id}`, { method: 'DELETE' }),
 };
 
+export const addressesApi = {
+  update: (id, body) => api(`/api/v1/addresses/${id}`, { method: 'PUT', body }),
+  list: () => api('/api/v1/addresses'),
+  create: (payload) => api('/api/v1/addresses', { method: 'POST', body: payload }),
+  remove: (id) => api(`/api/v1/addresses/${id}`, { method: 'DELETE' }),
+};
+
+export const paymentApi = {
+  config: () => api('/api/v1/payments/config'),
+  checkout: (orderId) => api(`/api/v1/payments/orders/${orderId}/checkout`, { method: 'POST' }),
+  confirm: (orderId, payload) => api(`/api/v1/payments/orders/${orderId}/confirm`, { method: 'POST', body: payload }),
+};
+
 export const ordersApi = {
+  mine: () => api('/api/v1/orders/mine'),
   list: () => api('/api/v1/orders'),
   get: (id) => api(`/api/v1/orders/${id}`),
   // POST /api/v1/orders (USER,ADMIN, owner = JWT principal).
@@ -121,6 +136,7 @@ export const ordersApi = {
 };
 
 export const inventoryApi = {
+  ledger: () => api('/api/v1/inventory/ledger'),
   // GET /api/v1/inventory/products/{id}/stock-verify (ADMIN)
   // -> { productId, cachedQuantity, ledgerQuantity, match }
   verifyStock: (productId) => api(`/api/v1/inventory/products/${productId}/stock-verify`),
@@ -134,7 +150,6 @@ export const inventoryApi = {
   reconcile: (productId) =>
     api(`/api/v1/inventory/products/${productId}/stock-reconcile`, { method: 'POST' }),
 };
-
 // ---------------------------------------------------------------------------
 // Error presentation: raw backend text (SQL, constraint names, stack traces)
 // must never reach the UI. Route every user-facing error through

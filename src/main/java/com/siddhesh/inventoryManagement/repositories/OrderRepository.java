@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
+    java.util.List<Order> findByUser_IdOrderByCreatedAtDescIdDesc(UUID userId);
+    boolean existsByUser_Id(UUID userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :id")

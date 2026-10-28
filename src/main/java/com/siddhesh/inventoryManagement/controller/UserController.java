@@ -23,6 +23,13 @@ import java.util.UUID;
 @RequestMapping(path = "/api/v1/user")
 public class UserController {
     private final UserService userService;
+    private final com.siddhesh.inventoryManagement.security.CurrentUser currentUser;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<UserResponse> createMember(@jakarta.validation.Valid @RequestBody AdminUserUpdateRequest request) {
+        return ResponseEntity.status(201).body(userService.createMember(request));
+    }
 //
 //    GET    /api/v1/users
 //    GET    /api/v1/users/{id}
@@ -45,7 +52,7 @@ public class UserController {
     @PatchMapping(value="/me")
     public ResponseEntity<UserResponse> updateProfileByIdUserRoute(
             Authentication authentication,
-            @RequestBody UserUpdateRequest payload
+            @jakarta.validation.Valid @RequestBody UserUpdateRequest payload
     ){
         System.out.println("INSIDE THE CONTROLLER");
 
@@ -68,9 +75,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping()
-    public ResponseEntity<List<UserResponse>> getProfilesAdminRoute(
-            @PathVariable UUID id
-    ){
+    public ResponseEntity<List<UserResponse>> getProfilesAdminRoute(){
         return ResponseEntity.ok(
                 userService.getProfiles()
         );
@@ -81,7 +86,7 @@ public class UserController {
     @PutMapping(value="/{id}")
     public ResponseEntity<UserResponse> updateProfileByIdAdminRoute(
             @PathVariable UUID id,
-            @RequestBody AdminUserUpdateRequest payload,
+            @jakarta.validation.Valid @RequestBody AdminUserUpdateRequest payload,
             Authentication authentication
     ){
 
@@ -97,6 +102,9 @@ public class UserController {
     public ResponseEntity<Void> deleteProfileByIdAdminRoute(
             @PathVariable UUID id
     ){
+        if (id.equals(currentUser.requireUser().getId())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "You cannot remove your own account");
+        }
         userService.deleteProfileById(id);
         return ResponseEntity.noContent().build();
     }

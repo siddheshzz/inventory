@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth';
 
 export default function Login() {
   const [step, setStep] = useState(1);
-  const [phoneNumber, setPhoneNumber] = useState('9763369894');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [status, setStatus] = useState(null); // { type, text }
   const [busy, setBusy] = useState(false);
@@ -50,18 +50,17 @@ export default function Login() {
             <div className="brand-mark">▦</div>
             <div><b>Stockline</b><small>Inventory OS</small></div>
           </div>
-          <h1>Inventory,<br />minus the chaos.</h1>
+          <h1>Your next find.<br />One sign-in away.</h1>
           <p>
-            A minimal showcase for a Spring Boot inventory backend — OTP auth with JWT,
-            products, categories, stock quantities and role-based admin controls.
+            Discover the collection, keep track of your orders and make yourself at home.
           </p>
           <div className="hero-points">
-            <div>◷ &nbsp;OTP login → JWT &nbsp;<code>POST /api/v1/auth/send-otp</code></div>
-            <div>▦ &nbsp;Products CRUD &nbsp;<code>GET /api/v1/products</code></div>
-            <div>◍ &nbsp;Categories (admin) &nbsp;<code>/api/v1/categorie</code></div>
+            <div>Discover products and build your basket.</div>
+            <div>Pay with Razorpay in test mode.</div>
+            <div>Find all your orders in one place.</div>
           </div>
         </div>
-        <p style={{ fontSize: 12 }}>Spring Boot · Postgres · Redis OTP · JWT · React showcase</p>
+        <p style={{ fontSize: 12 }}>Administrators are taken to their operations workspace after sign-in.</p>
       </div>
 
       <div className="login-form-side">
@@ -72,7 +71,7 @@ export default function Login() {
           </h2>
           <p style={{ color: '#6b7280', fontSize: 14, marginTop: 0 }}>
             {step === 1
-              ? 'We use passwordless OTP, backed by Redis with a 5-minute expiry.'
+              ? 'Use your phone number to receive a one-time sign-in code.'
               : `Code sent to ${phoneNumber}. Demo: read it from backend logs.`}
           </p>
 
@@ -85,7 +84,7 @@ export default function Login() {
                 className="input"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="9763369894"
+                placeholder="Your phone number"
                 inputMode="tel"
                 required
               />
@@ -93,8 +92,7 @@ export default function Login() {
                 {busy ? 'Sending…' : 'Send OTP →'}
               </button>
               <p className="footer-note">
-                Admin demo account: <span className="kbd">9763369894</span> (seeded by DataInitializer).
-                New numbers auto-register as USER.
+                New here? Signing in with a new number creates your customer account.
               </p>
             </form>
           ) : (

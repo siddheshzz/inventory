@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import ConfirmDelete from '../components/ConfirmDelete';
 import { friendlyError, ordersApi, productsApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { customerName, newestFirst, titleCase } from '../lib/presentation';
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const dateTime = (v) => v ? new Date(v).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unavailable';
 
 const STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 const TERMINAL = ['DELIVERED', 'CANCELLED'];
+const NEXT = { PENDING: 'CONFIRMED', CONFIRMED: 'PROCESSING', PROCESSING: 'SHIPPED', SHIPPED: 'DELIVERED' };
+const ACTION = { PENDING: 'Confirm order', CONFIRMED: 'Start processing', PROCESSING: 'Mark as shipped', SHIPPED: 'Mark as delivered' };
 
 function statusBadge(status) {
   if (status === 'CANCELLED') return 'red';
@@ -20,7 +24,7 @@ function OrderCard({
   products, onEnsureProducts, onMutated, onNotify,
 }) {
   const items = order.items || [];
-  const editable = order.status === 'PENDING';
+  const editable = order.status === 'PENDING' && order.paymentStatus === 'PENDING' && !order.checkoutPending;
   const terminal = TERMINAL.includes(order.status);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -30,6 +34,7 @@ function OrderCard({
   const [statusSel, setStatusSel] = useState(order.status);
   const [confirmingRemove, setConfirmingRemove] = useState(null); // itemId
   const [confirmCancel, setConfirmCancel] = useState(false);
+  useEffect(() => { setStatusSel(order.status); }, [order.status]);
 
   const addProduct = products.find((p) => p.id === addPid) || null;
   const addMax = addProduct?.quantity || 0;
@@ -76,20 +81,16 @@ function OrderCard({
   };
 
   return (
-    <div style={{ border: '1px solid #eee', borderRadius: 12, padding: '12px 14px' }}>
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', cursor: 'pointer' }}
+    <div className="admin-order">
+      <button type="button" className="admin-order-row" aria-expanded={expanded}
         onClick={onToggle}
       >
-        <span className="mono" style={{ color: '#6b7280' }}>{String(order.id).slice(0, 8)}…</span>
-        <span className={`badge ${statusBadge(order.status)}`}>{order.status}</span>
-        <span className="badge">{order.paymentStatus}</span>
-        <span style={{ fontSize: 13, color: '#6b7280' }}>
-          {items.reduce((s, i) => s + (i.quantity || 0), 0)} units · {items.length} lines
-        </span>
-        <b style={{ marginLeft: 'auto' }}>{money(order.grandTotal)}</b>
-        <span style={{ color: '#6b7280', fontSize: 12 }}>{expanded ? '▴' : '▾'}</span>
-      </div>
+        <span><small>Customer</small><b>{customerName(order)}</b><span className="cell-sub">{order.userPhone}</span></span>
+        <span><small>Purchased on</small><b>{dateTime(order.createdAt)}</b><span className="cell-sub">#{String(order.id).slice(0, 8)}</span></span>
+        <span><small>Products</small><b>{items.map(i => i.productName).join(', ')}</b><span className="cell-sub">{items.reduce((s, i) => s + (i.quantity || 0), 0)} units</span></span>
+        <span><small>Status / payment</small><span className={`badge ${statusBadge(order.status)}`}>{titleCase(order.status)}</span><span className="cell-sub">{order.paymentStatus === 'CONFIRMED' ? 'Paid' : 'Payment pending'}</span></span>
+        <span><small>Total</small><b>{money(order.grandTotal)}</b><span className="cell-sub">{expanded ? 'Close details ↑' : 'Manage order ↓'}</span></span>
+      </button>
 
       {expanded && (
         <div style={{ marginTop: 10, borderTop: '1px solid #f1f1f1', paddingTop: 10, fontSize: 13 }}>
@@ -116,9 +117,8 @@ function OrderCard({
           <div style={{ display: 'flex', gap: 8, padding: '6px 0 0', color: '#6b7280' }}>
             <span style={{ flex: 1 }}>Subtotal {money(order.subtotal)} · Discount {money(order.discount)} · Tax {money(order.tax)} · Shipping {money(order.shippingCharges)}</span>
           </div>
-          <div className="mono" style={{ color: '#6b7280', fontSize: 11, marginTop: 6 }}>
-            {order.id} · {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'date n/a'}
-          </div>
+          <p className="muted">Last updated: {dateTime(order.updatedAt)}</p>
+          <details className="technical"><summary>Full order & customer references</summary><p>Order: <code>{order.id}</code><br />Customer: <code>{order.userId}</code></p></details>
 
           {editable && (
             <div style={{ marginTop: 10, borderTop: '1px dashed #eee', paddingTop: 10 }}>
@@ -165,15 +165,16 @@ function OrderCard({
 
           {isAdmin && !terminal && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'end', marginTop: 10, borderTop: '1px dashed #eee', paddingTop: 10 }}>
+              {order.checkoutPending ? <p className="alert info">Checkout is in progress. The customer must complete payment before this order can advance.</p> : <button className="btn" disabled={busy} onClick={() => doStatus(NEXT[order.status])}>{ACTION[order.status]}</button>}
               <div>
-                <label className="label">Status (admin)</label>
-                <select className="select" value={statusSel} onChange={(e) => setStatusSel(e.target.value)}>
-                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                <label className="label">Change status</label>
+                <select className="select" disabled={order.checkoutPending} value={statusSel} onChange={(e) => setStatusSel(e.target.value)}>
+                  {[order.status, NEXT[order.status], ...(order.status !== 'SHIPPED' && order.paymentStatus !== 'CONFIRMED' ? ['CANCELLED'] : [])].filter(Boolean).map((s) => <option key={s} value={s}>{titleCase(s)}</option>)}
                 </select>
               </div>
               <button
                 className="btn small"
-                disabled={busy || statusSel === order.status}
+                disabled={busy || order.checkoutPending || statusSel === order.status}
                 onClick={() => (statusSel === 'CANCELLED' ? setConfirmCancel(true) : doStatus(statusSel))}
               >
                 Apply status
@@ -222,6 +223,8 @@ export default function Orders() {
   const [placing, setPlacing] = useState(false);
   const [notice, setNotice] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('ALL');
 
   const loadOrders = async () => {
     if (!isAdmin) return;
@@ -246,8 +249,7 @@ export default function Orders() {
   };
 
   const refreshProducts = async () => {
-    setProductsLoaded(false);
-    await ensureProducts();
+    try { setProducts(await productsApi.list()); setProductsLoaded(true); } catch { setProductsLoaded(false); }
   };
 
   // Merge a mutation response (updated order) into every visible list.
@@ -349,19 +351,16 @@ export default function Orders() {
     }
     return sessionOrders;
   }, [isAdmin, orders, sessionOrders]);
+  const filtered = [...shownOrders].sort(newestFirst).filter(o => (filter === 'ALL' || o.status === filter) && `${customerName(o)} ${o.userPhone} ${o.id} ${(o.items || []).map(i => i.productName).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>Orders</h1>
-          <p>
-            <span className="kbd">POST /orders</span> creates an order as you.{' '}
-            PENDING orders can gain/lose lines (all roles); status transitions are admin-only,
-            and cancelling restores stock.
-          </p>
+          <span className="section-kicker">FULFILMENT DESK</span><h1>Customer orders</h1>
+          <p>Customer details, purchases and next actions. Sorted newest first.</p>
         </div>
-        <button className="btn" onClick={openModal}>+ New order</button>
+        <button className="btn" onClick={openModal}>+ Order for myself</button>
       </div>
 
       {notice && <div className={`alert ${notice.type}`}>{notice.text}</div>}
@@ -392,13 +391,14 @@ export default function Orders() {
         </div>
       )}
 
+      <div className="toolbar"><input className="input search" aria-label="Search orders" placeholder="Search customer, phone, product or reference…" value={search} onChange={e => setSearch(e.target.value)} /><select className="select" aria-label="Order status" value={filter} onChange={e => setFilter(e.target.value)}><option value="ALL">All statuses</option>{STATUSES.map(s => <option key={s} value={s}>{titleCase(s)}</option>)}</select><button className="btn ghost" onClick={loadOrders}>Refresh</button><span className="muted">{filtered.length} orders · Newest first</span></div>
       {isAdmin && orders === null && !loadError ? (
         <div className="card">Loading orders…</div>
-      ) : shownOrders.length === 0 ? (
-        <div className="card empty"><b>No orders yet</b>Place the first order with “New order”.</div>
+      ) : filtered.length === 0 ? (
+        <div className="card empty"><b>No matching orders</b>Orders will appear here after customers check out. Try clearing your filters.</div>
       ) : (
         <div style={{ display: 'grid', gap: 10 }}>
-          {shownOrders.map((o) => (
+          {filtered.map((o) => (
             <OrderCard
               key={o.id}
               order={o}

@@ -11,6 +11,7 @@ import java.util.UUID;
 @Setter
 @Builder
 public class UserUpdateRequest {
+    @jakarta.validation.constraints.Email
     private String email;
     private String name;
 }

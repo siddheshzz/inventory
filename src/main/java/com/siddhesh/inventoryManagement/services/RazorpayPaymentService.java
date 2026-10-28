@@ -153,6 +153,81 @@ public class RazorpayPaymentService {
         );
     }
 
+    private Map<String, Object> confirmCapturedPayment(
+            Order order,
+            Payment payment,
+            String gatewayPaymentId
+    ) throws RazorpayException {
+        // Move the existing block here, as described below.
+        if (payment.getStatus() == PaymentStatus.CONFIRMED) {
+            if (!gatewayPaymentId
+                    .equals(payment.getTransactionReference())) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "A different payment was already confirmed"
+                );
+            }
+
+            return Map.of(
+                    "paymentId", payment.getId(),
+                    "orderId", order.getId(),
+                    "paymentStatus", payment.getStatus().name()
+            );
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING
+                || order.getPaymentStatus() != PaymentStatus.PENDING
+                || order.getStatus() != OrderStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Order or payment is no longer awaiting confirmation"
+            );
+        }
+
+        com.razorpay.Payment gatewayPayment =
+                razorpayClient.payments.fetch(gatewayPaymentId);
+
+        String gatewayOrderId = gatewayPayment.get("order_id");
+        String currency = gatewayPayment.get("currency");
+        String status = gatewayPayment.get("status");
+        Number amount = gatewayPayment.get("amount");
+
+        long expectedPaise = payment.getAmount()
+                .movePointRight(2)
+                .longValueExact();
+
+        boolean matches =
+                payment.getGatewayOrderId().equals(gatewayOrderId)
+                        && payment.getCurrency().equals(currency)
+                        && amount.longValue() == expectedPaise
+                        && payment.getAmount()
+                        .compareTo(order.getGrand_total()) == 0;
+
+        if (!matches) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment details do not match the saved order"
+            );
+        }
+
+        if (!"captured".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment is not captured yet"
+            );
+        }
+
+        payment.setTransactionReference(gatewayPaymentId);
+        payment.setStatus(PaymentStatus.CONFIRMED);
+        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+
+        return Map.of(
+                "paymentId", payment.getId(),
+                "orderId", order.getId(),
+                "paymentStatus", payment.getStatus().name()
+        );
+    }
+
     @Transactional(rollbackFor = RazorpayException.class)
     public Map<String, Object> confirmPayment(
             UUID orderId,
@@ -203,73 +278,79 @@ public class RazorpayPaymentService {
             );
         }
 
-        // Repeating confirmation for the same payment changes nothing.
-        if (payment.getStatus() == PaymentStatus.CONFIRMED) {
-            if (!request.razorpayPaymentId()
-                    .equals(payment.getTransactionReference())) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "A different payment was already confirmed"
-                );
-            }
-
-            return Map.of(
-                    "paymentId", payment.getId(),
-                    "orderId", order.getId(),
-                    "paymentStatus", payment.getStatus().name()
-            );
-        }
-
-        if (payment.getStatus() != PaymentStatus.PENDING
-                || order.getPaymentStatus() != PaymentStatus.PENDING
-                || order.getStatus() != OrderStatus.PENDING) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Order or payment is no longer awaiting confirmation"
-            );
-        }
-
-        com.razorpay.Payment gatewayPayment =
-                razorpayClient.payments.fetch(request.razorpayPaymentId());
-
-        String gatewayOrderId = gatewayPayment.get("order_id");
-        String currency = gatewayPayment.get("currency");
-        String status = gatewayPayment.get("status");
-        Number amount = gatewayPayment.get("amount");
-
-        long expectedPaise = payment.getAmount()
-                .movePointRight(2)
-                .longValueExact();
-
-        boolean matches =
-                payment.getGatewayOrderId().equals(gatewayOrderId)
-                        && payment.getCurrency().equals(currency)
-                        && amount.longValue() == expectedPaise
-                        && payment.getAmount()
-                        .compareTo(order.getGrand_total()) == 0;
-
-        if (!matches) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Payment details do not match the saved order"
-            );
-        }
-
-        if (!"captured".equals(status)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Payment is not captured yet"
-            );
-        }
-
-        payment.setTransactionReference(request.razorpayPaymentId());
-        payment.setStatus(PaymentStatus.CONFIRMED);
-        order.setPaymentStatus(PaymentStatus.CONFIRMED);
-
-        return Map.of(
-                "paymentId", payment.getId(),
-                "orderId", order.getId(),
-                "paymentStatus", payment.getStatus().name()
+        return confirmCapturedPayment(
+                order,
+                payment,
+                request.razorpayPaymentId()
         );
+
+        // Repeating confirmation for the same payment changes nothing.
+//        if (payment.getStatus() == PaymentStatus.CONFIRMED) {
+//            if (!request.razorpayPaymentId()
+//                    .equals(payment.getTransactionReference())) {
+//                throw new ResponseStatusException(
+//                        HttpStatus.CONFLICT,
+//                        "A different payment was already confirmed"
+//                );
+//            }
+//
+//            return Map.of(
+//                    "paymentId", payment.getId(),
+//                    "orderId", order.getId(),
+//                    "paymentStatus", payment.getStatus().name()
+//            );
+//        }
+//
+//        if (payment.getStatus() != PaymentStatus.PENDING
+//                || order.getPaymentStatus() != PaymentStatus.PENDING
+//                || order.getStatus() != OrderStatus.PENDING) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.CONFLICT,
+//                    "Order or payment is no longer awaiting confirmation"
+//            );
+//        }
+//
+//        com.razorpay.Payment gatewayPayment =
+//                razorpayClient.payments.fetch(request.razorpayPaymentId());
+//
+//        String gatewayOrderId = gatewayPayment.get("order_id");
+//        String currency = gatewayPayment.get("currency");
+//        String status = gatewayPayment.get("status");
+//        Number amount = gatewayPayment.get("amount");
+//
+//        long expectedPaise = payment.getAmount()
+//                .movePointRight(2)
+//                .longValueExact();
+//
+//        boolean matches =
+//                payment.getGatewayOrderId().equals(gatewayOrderId)
+//                        && payment.getCurrency().equals(currency)
+//                        && amount.longValue() == expectedPaise
+//                        && payment.getAmount()
+//                        .compareTo(order.getGrand_total()) == 0;
+//
+//        if (!matches) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.CONFLICT,
+//                    "Payment details do not match the saved order"
+//            );
+//        }
+//
+//        if (!"captured".equals(status)) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.CONFLICT,
+//                    "Payment is not captured yet"
+//            );
+//        }
+//
+//        payment.setTransactionReference(request.razorpayPaymentId());
+//        payment.setStatus(PaymentStatus.CONFIRMED);
+//        order.setPaymentStatus(PaymentStatus.CONFIRMED);
+//
+//        return Map.of(
+//                "paymentId", payment.getId(),
+//                "orderId", order.getId(),
+//                "paymentStatus", payment.getStatus().name()
+//        );
     }
 }

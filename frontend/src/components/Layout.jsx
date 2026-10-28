@@ -1,63 +1,16 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
+const links = [['', 'Overview'], ['/orders', 'Customer orders'], ['/products', 'Products'], ['/categories', 'Categories'], ['/inventory', 'Stock & restocking'], ['/ledger', 'Stock ledger'], ['/team', 'Team & customers'], ['/account', 'My account']];
 export default function Layout({ children }) {
-  const { profile, role, isAdmin, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">▦</div>
-          <div>
-            <b>Stockline</b>
-            <small>Inventory OS</small>
-          </div>
-        </div>
-
-        <nav className="nav">
-          <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
-            Overview
-          </NavLink>
-          <NavLink to="/products" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Products
-          </NavLink>
-          <NavLink to="/categories" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Categories {isAdmin ? '' : <span className="count">admin</span>}
-          </NavLink>
-          <NavLink to="/orders" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Orders
-          </NavLink>
-          <NavLink to="/inventory" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Inventory {isAdmin ? '' : <span className="count">admin</span>}
-          </NavLink>
-          <NavLink to="/users" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Team & Profile
-          </NavLink>
-        </nav>
-
-        <div className="side-foot">
-          <div className="user-chip">
-            <b>{profile?.name || 'Signed in'}</b>
-            <span>{profile?.phoneNumber || ''}</span>
-            <br />
-            <span className={`role-pill ${role === 'ADMIN' ? '' : 'user'}`}>
-              {role || 'USER'}
-            </span>
-          </div>
-          <button className="btn ghost" style={{ borderColor: '#333', color: '#fff' }} onClick={handleLogout}>
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      <main className="main">{children}</main>
-    </div>
-  );
+  const { profile, logout } = useAuth();
+  return <div className="shell admin-shell">
+    <aside className="sidebar">
+      <Link to="/admin" className="brand"><span className="brand-mark">S</span><span><b>Stockline</b><small>Operations workspace</small></span></Link>
+      <span className="nav-caption">MANAGE YOUR BUSINESS</span>
+      <nav className="nav" aria-label="Administration">{links.map(([path, label]) => <NavLink key={path} to={`/admin${path}`} end={!path}>{label}</NavLink>)}</nav>
+      <div className="side-foot"><Link className="store-link" to="/shop">Open customer storefront ↗</Link><div className="user-chip"><b>{profile?.name || profile?.phoneNumber || 'Administrator'}</b><span>Administrator</span></div><button className="btn signout" onClick={logout}>Sign out</button></div>
+    </aside>
+    <main className="main">{children}</main>
+  </div>;
 }

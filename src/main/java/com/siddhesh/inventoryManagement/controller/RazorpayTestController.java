@@ -22,6 +22,15 @@ public class RazorpayTestController {
     private final RazorpayPaymentService paymentService;
     private final CurrentUser currentUser;
 
+    @org.springframework.beans.factory.annotation.Value("${razorpay.key-id}")
+    private String keyId;
+
+    @GetMapping("/config")
+    public Map<String, Object> checkoutConfig() {
+        boolean testMode = keyId != null && keyId.startsWith("rzp_test_");
+        return Map.of("keyId", testMode ? keyId : "", "testMode", testMode);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/test-order")
     public Map<String, String> createTestOrder()

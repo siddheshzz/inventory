@@ -34,6 +34,9 @@ public class OrderResponse {
     private PaymentStatus paymentStatus;
 
     private UUID userId;
+    private String userName;
+    private String userPhone;
+    private boolean checkoutPending;
 
     private List<OrderItemResponse> items;
 

@@ -142,7 +142,7 @@ export default function Products() {
       <div className="page-head">
         <div>
           <h1>Products</h1>
-          <p>{products.length} SKUs · live from <span className="kbd">GET /api/v1/products</span>. Create / edit / deactivate require ADMIN.</p>
+          <p>{products.length} products · Manage names, prices, categories and availability.</p>
         </div>
         {isAdmin && <button className="btn" onClick={openCreate}>+ New product</button>}
       </div>
@@ -204,7 +204,7 @@ export default function Products() {
         <div className="modal-backdrop" onClick={() => setModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>{modal.mode === 'create' ? 'New product' : 'Edit product'}</h3>
-            <p className="sub">{modal.mode === 'create' ? 'POST /api/v1/products (ADMIN)' : 'PATCH /api/v1/products/{id} (ADMIN)'}</p>
+            <p className="sub">{modal.mode === 'create' ? 'Add a product to your collection.' : 'Update the product details customers see.'}</p>
             <form onSubmit={save}>
               <div className="field"><label className="label">Name</label>
                 <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -222,8 +222,7 @@ export default function Products() {
               )}
               {modal.mode === 'edit' && (
                 <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 14px' }}>
-                  Stock & status are read-only — <span className="kbd">PATCH /products</span> accepts
-                  name/description/price/category only. Stock changes when orders are placed.
+                  To receive new stock, use Stock & restocking. Product edits update the name, description, price and category.
                 </p>
               )}
               <div className="field"><label className="label">Category</label>

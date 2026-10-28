@@ -41,6 +41,9 @@ public class OrderMapper {
                                 ? order.getUser().getId()
                                 : null
                 )
+                .userName(order.getUser() != null ? order.getUser().getName() : null)
+                .userPhone(order.getUser() != null ? order.getUser().getPhoneNumber() : null)
+                .checkoutPending(order.getPayments() != null && order.getPayments().stream().anyMatch(p -> p.getStatus() == PaymentStatus.PENDING))
                 .items(toOrderItemResponses(order.getOrderItems()))
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())

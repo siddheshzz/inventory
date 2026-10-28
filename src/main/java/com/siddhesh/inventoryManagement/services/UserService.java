@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
+    UserResponse createMember(AdminUserUpdateRequest payload);
 
     UserResponse getProfile(String phoneNumber);
 

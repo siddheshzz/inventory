@@ -24,6 +24,7 @@ public class ProductResponse {
     private String description;
     private BigDecimal price;
     private UUID categoryId;
+    private String categoryName;
     private Integer quantity;
     private Boolean active;
 

@@ -16,6 +16,7 @@ public interface OrderService {
 
 //    GET /api/v1/profile/orders
     List<OrderResponse> listOrders();
+    List<OrderResponse> listOwnOrders(User caller);
 //
 //    GET    /api/v1/orders/{id}
     OrderResponse getOrderById(UUID id, User caller);

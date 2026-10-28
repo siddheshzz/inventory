@@ -1,101 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { friendlyError, usersApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import Modal from '../components/Modal';
 
 export default function Users() {
-  const { profile, isAdmin, refreshProfile } = useAuth();
-  const [form, setForm] = useState({ name: profile?.name || '', email: profile?.email || '' });
-  const [status, setStatus] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [team, setTeam] = useState(null);
-  const [teamError, setTeamError] = useState(null);
-
-  const save = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setStatus(null);
-    try {
-      // PATCH /api/v1/user/me
-      await usersApi.updateMe({ name: form.name, email: form.email });
-      await refreshProfile();
-      setStatus({ type: 'ok', text: 'Profile updated.' });
-    } catch (err) {
-      setStatus({ type: 'error', text: friendlyError(err, 'Could not update your profile. Please try again.') });
-    } finally {
-      setBusy(false);
-    }
+  const { profile } = useAuth();
+  const [members, setMembers] = useState([]), [query, setQuery] = useState(''), [role, setRole] = useState('ALL');
+  const [editing, setEditing] = useState(null), [removing, setRemoving] = useState(null);
+  const [busy, setBusy] = useState(false), [loading, setLoading] = useState(true), [notice, setNotice] = useState(null);
+  const load = async () => { try { setMembers(await usersApi.list()); } catch (e) { setNotice({ type: 'error', text: friendlyError(e, 'Could not load members.') }); } finally { setLoading(false); } };
+  useEffect(() => { load(); }, []);
+  const save = async e => {
+    e.preventDefault(); setBusy(true); setNotice(null);
+    try { if (editing.id) await usersApi.updateById(editing.id, editing); else await usersApi.create(editing); setEditing(null); await load(); setNotice({ type: 'ok', text: 'Member saved. They can sign in using their phone number.' }); }
+    catch (e) { setNotice({ type: 'error', text: friendlyError(e, 'Could not save the member.') }); } finally { setBusy(false); }
   };
-
-  const loadTeam = async () => {
-    setTeamError(null);
-    try {
-      // NOTE: backend admin list route has a mapping quirk (@PathVariable on a @GetMapping
-      // without a path placeholder), so this may 500 until that's fixed. Surfaced honestly here.
-      const list = await usersApi.list();
-      setTeam(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setTeamError(friendlyError(err, 'Could not load the team. The admin list endpoint may need a backend fix.'));
-    }
-  };
-
-  return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1>Team & Profile</h1>
-          <p>Your identity from <span className="kbd">GET /api/v1/user/me</span>, decoded from your JWT.</p>
-        </div>
-      </div>
-
-      {status && <div className={`alert ${status.type}`}>{status.text}</div>}
-
-      <div className="grid-2">
-        <div className="card">
-          <h3 style={{ margin: '0 0 4px' }}>My profile</h3>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}>
-            <span className="kbd">PATCH /api/v1/user/me</span> · phone is immutable
-          </p>
-          <div className="field"><label className="label">Phone</label><input className="input" value={profile?.phoneNumber || ''} disabled /></div>
-          <form onSubmit={save}>
-            <div className="field"><label className="label">Name</label>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={profile?.name || 'Your name'} />
-            </div>
-            <div className="field"><label className="label">Email</label>
-              <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={profile?.email || 'you@example.com'} />
-            </div>
-            <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
-          </form>
-          <div className="footer-note">
-            Role: <span className="kbd">{profile?.role || '—'}</span> · ID: <span className="mono">{profile?.id || '—'}</span>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3 style={{ margin: '0 0 4px' }}>Team {isAdmin ? '(admin)' : ''}</h3>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}><span className="kbd">GET /api/v1/user</span></p>
-          {!isAdmin ? (
-            <div className="empty"><b>Admin only</b>Sign in with the admin number to list users.</div>
-          ) : team === null ? (
-            <>
-              <button className="btn ghost" onClick={loadTeam}>Load team</button>
-              {teamError && <div className="alert error" style={{ marginTop: 12 }}>Could not load team: {teamError}</div>}
-            </>
-          ) : team.length === 0 ? (
-            <div className="empty"><b>No users returned</b></div>
-          ) : (
-            <div className="table-wrap" style={{ boxShadow: 'none' }}>
-              <table>
-                <thead><tr><th>Name</th><th>Phone</th><th>Role</th></tr></thead>
-                <tbody>
-                  {team.map((u) => (
-                    <tr key={u.id}><td><b>{u.name}</b></td><td className="mono">{u.phoneNumber}</td><td><span className="badge">{u.role}</span></td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
+  const remove = async () => { setBusy(true); setNotice(null); try { await usersApi.removeById(removing.id); setRemoving(null); await load(); setNotice({ type: 'ok', text: 'Member removed.' }); } catch (e) { setNotice({ type: 'error', text: friendlyError(e, 'This member could not be removed. Accounts with order or stock history must be retained.') }); } finally { setBusy(false); } };
+  const visible = members.filter(m => (role === 'ALL' || m.role === role) && `${m.name} ${m.phoneNumber} ${m.email || ''}`.toLowerCase().includes(query.toLowerCase()));
+  return <><div className="page-head"><div><span className="section-kicker">PEOPLE & ACCESS</span><h1>Team & customers</h1><p>Manage account details and who can access your operations workspace.</p></div><button className="btn" onClick={() => { setNotice(null); setEditing({ name: '', email: '', phoneNumber: '', role: 'USER' }); }}>+ Add member</button></div>
+    {notice && <div role="status" className={`alert ${notice.type}`}>{notice.text}</div>}
+    <div className="toolbar"><input aria-label="Search members" className="input search" placeholder="Search name, phone or email…" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Filter members by role" className="select" value={role} onChange={e => setRole(e.target.value)}><option value="ALL">Everyone</option><option value="ADMIN">Administrators</option><option value="USER">Customers</option></select></div>
+    {loading ? <div className="card">Loading people…</div> : <div className="table-wrap"><table><thead><tr><th>Person</th><th>Contact</th><th>Access</th><th>Manage</th></tr></thead><tbody>{visible.map(m => <tr key={m.id}><td><b>{m.name || m.phoneNumber}</b>{m.id === profile?.id && <span className="badge">You</span>}<details className="technical"><summary>Account ID</summary><code>{m.id}</code></details></td><td>{m.phoneNumber}<small className="cell-sub">{m.email || 'No email added'}</small></td><td><span className={`badge ${m.role === 'ADMIN' ? 'dark' : ''}`}>{m.role === 'ADMIN' ? 'Administrator' : 'Customer'}</span></td><td><div className="button-row"><button className="btn ghost small" onClick={() => { setNotice(null); setEditing({ ...m }); }}>Edit</button><button className="btn ghost small" disabled={m.id === profile?.id} onClick={() => { setNotice(null); setRemoving(m); }}>Remove</button></div></td></tr>)}</tbody></table>{!visible.length && <div className="empty">No matching people.</div>}</div>}
+    {editing && <Modal title={editing.id ? `Edit ${editing.name}` : 'Add member'} busy={busy} onClose={() => setEditing(null)}><form onSubmit={save}><label className="field-label">Full name<input className="input" required maxLength={100} value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></label><label className="field-label">Phone number<input className="input" required pattern="\+?[0-9]{10,15}" disabled={!!editing.id} value={editing.phoneNumber} onChange={e => setEditing({ ...editing, phoneNumber: e.target.value })} /></label><label className="field-label">Email (optional)<input className="input" type="email" value={editing.email || ''} onChange={e => setEditing({ ...editing, email: e.target.value })} /></label><label className="field-label">Access level<select className="select" disabled={editing.id === profile?.id} value={editing.role} onChange={e => setEditing({ ...editing, role: e.target.value })}><option value="USER">Customer — shop and manage own orders</option><option value="ADMIN">Administrator — manage inventory and people</option></select></label>{editing.role === 'ADMIN' && <p className="muted">Administrators can manage products, stock, orders and other accounts.</p>}{notice?.type === 'error' && <p role="alert">{notice.text}</p>}<button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save member'}</button></form></Modal>}
+    {removing && <Modal title={`Remove ${removing.name}?`} busy={busy} onClose={() => setRemoving(null)}><p>This deletes their account. Accounts with order or stock history are protected.</p>{notice?.type === 'error' && <p role="alert">{notice.text}</p>}<button className="btn danger" disabled={busy} onClick={remove}>Remove member</button></Modal>}
+  </>;
 }

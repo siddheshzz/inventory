@@ -7,11 +7,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, UUID> {
+    boolean existsByCreatedBy_Id(UUID userId);
 
     @Query("SELECT COALESCE(SUM(t.quantityChange), 0) FROM StockTransaction t WHERE t.product.id = :productId")
     long sumQuantityChangeByProductId(@Param("productId") UUID productId);
 
     List<StockTransaction> findByOrderItem_Id(UUID orderItemId);
+    @EntityGraph(attributePaths = {"product", "createdBy", "order"})
+    List<StockTransaction> findAllByOrderByCreatedAtDesc();
 }

@@ -104,7 +104,7 @@ export default function Categories() {
       <div className="page-head">
         <div>
           <h1>Categories</h1>
-          <p>Note the backend path is singular: <span className="kbd">/api/v1/categorie</span>. All routes are ADMIN-only.</p>
+          <p>Organise your product collection into clear, useful groups.</p>
         </div>
       </div>
 
@@ -114,7 +114,7 @@ export default function Categories() {
       <div className="grid-2">
         <div className="card">
           <h3 style={{ margin: '0 0 4px' }}>New category</h3>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}><span className="kbd">POST /api/v1/categorie</span></p>
+          <p className="muted">Give your new product group a name.</p>
           <form onSubmit={create}>
             <div className="field">
               <label className="label">Name</label>
@@ -126,7 +126,7 @@ export default function Categories() {
 
         <div className="card">
           <h3 style={{ margin: '0 0 4px' }}>All categories ({cats.length})</h3>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: 13 }}><span className="kbd">GET /api/v1/categorie</span></p>
+          <p className="muted">Manage the groups used in your catalogue.</p>
           {loading ? 'Loading…' : cats.length === 0 ? (
             <div className="empty"><b>No categories yet</b>Create the first one to organise products.</div>
           ) : (

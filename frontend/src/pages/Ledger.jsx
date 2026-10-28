@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { friendlyError, inventoryApi } from '../lib/api';
+import { dateTime, titleCase } from '../lib/presentation';
+
+export default function Ledger() {
+  const [rows, setRows] = useState([]), [loading, setLoading] = useState(true), [error, setError] = useState(null);
+  const [query, setQuery] = useState(''), [type, setType] = useState('all');
+  const load = async () => { setError(null); try { setRows(await inventoryApi.ledger()); } catch (e) { setError(friendlyError(e, 'Could not load stock movements.')); } finally { setLoading(false); } };
+  useEffect(() => { load(); }, []);
+  const visible = rows.filter(r => (type === 'all' || r.type === type) && `${r.productName} ${r.createdByName} ${r.reference} ${r.id}`.toLowerCase().includes(query.toLowerCase()));
+  return <><div className="page-head"><div><span className="section-kicker">INVENTORY HISTORY</span><h1>Stock ledger</h1><p>Who moved what, when and why. Newest movements first.</p></div><Link className="btn ghost" to="/admin/inventory">Back to stock</Link></div>{error && <div className="alert error">{error}</div>}<div className="toolbar"><input className="input search" aria-label="Search ledger" placeholder="Search product, person or reference…" value={query} onChange={e => setQuery(e.target.value)} /><select className="select" aria-label="Movement type" value={type} onChange={e => setType(e.target.value)}><option value="all">All movements</option>{['PURCHASE', 'SALE', 'RETURN', 'ADJUSTMENT'].map(t => <option key={t} value={t}>{titleCase(t)}</option>)}</select><button className="btn ghost" onClick={load}>Refresh</button></div>{loading ? <div className="card">Loading ledger…</div> : <div className="table-wrap"><table><thead><tr><th>When</th><th>Product</th><th>Movement</th><th>Units</th><th>Recorded by</th><th>Reference</th></tr></thead><tbody>{visible.map(r => <tr key={r.id}><td>{dateTime(r.createdAt)}</td><td><b>{r.productName}</b></td><td><span className="badge">{titleCase(r.type)}</span></td><td className={r.quantityChange > 0 ? 'positive' : 'negative'}><b>{r.quantityChange > 0 ? '+' : ''}{r.quantityChange}</b></td><td>{r.createdByName || 'Not recorded'}</td><td>{r.orderId ? <Link to="/admin/orders">Order #{r.orderId.slice(0, 8)} ↗</Link> : r.reference || 'No reference'}<details className="technical"><summary>Full references</summary><p>Movement: <code>{r.id}</code><br />Product: <code>{r.productId}</code><br />{r.reference}</p></details></td></tr>)}</tbody></table>{!visible.length && <div className="empty">No movements match these filters.</div>}</div>}</>;
+}
